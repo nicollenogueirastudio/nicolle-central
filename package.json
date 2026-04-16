@@ -1,0 +1,29 @@
+{
+  "name": "nicolle-central",
+  "version": "1.0.0",
+  "description": "Central Estratégica - Nicolle Nogueira Studio",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "keywords": [],
+  "author": "Nicolle Nogueira Studio",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.103.3",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "autoprefixer": "^10.5.0",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^1.8.0",
+    "next": "^14.2.35",
+    "postcss": "^8.5.10",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tailwindcss": "^4.2.2",
+    "typescript": "^6.0.2",
+    "zustand": "^5.0.12"
+  }
+}
