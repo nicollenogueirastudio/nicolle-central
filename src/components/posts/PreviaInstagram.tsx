@@ -24,20 +24,20 @@ export default function PreviaInstagram({ post, midias }: Props) {
 
   if (story) {
     return (
-      <div className="w-[260px] aspect-[9/16] bg-dark relative overflow-hidden rounded-xl mx-auto">
+      <div className="w-[260px] aspect-[9/16] bg-dark relative overflow-hidden rounded-[22px] shadow-flutuante mx-auto">
         {midia}
         <div className="absolute top-2 inset-x-2 h-0.5 bg-white/40" />
         <div className="absolute top-4 left-3 flex items-center gap-2 text-white text-xs font-semibold drop-shadow">
-          <span className="w-6 h-6 rounded-full bg-cream text-dark flex items-center justify-center font-display">N</span>{PERFIL}
+          <span className="w-6 h-6 rounded-full bg-white text-dark flex items-center justify-center text-[11px] font-semibold">N</span>{PERFIL}
         </div>
       </div>
     )
   }
 
   return (
-    <div className="w-[320px] bg-white border border-black/10 mx-auto text-[13px] text-black">
-      <div className="flex items-center gap-2 px-3 py-2">
-        <span className="w-7 h-7 rounded-full bg-dark text-cream flex items-center justify-center font-display text-sm">N</span>
+    <div className="w-[320px] bg-white rounded-[22px] shadow-flutuante overflow-hidden mx-auto text-[13px] text-black">
+      <div className="flex items-center gap-2 px-3 py-2.5">
+        <span className="w-7 h-7 rounded-full bg-dark text-white flex items-center justify-center text-[12px] font-semibold ring-2 ring-white outline outline-1 outline-black/10">N</span>
         <span className="font-semibold">{PERFIL}</span>
       </div>
       <div className={`relative bg-warm-beige ${post.tipo === 'reels' ? 'aspect-[9/16]' : 'aspect-[4/5]'}`}>

@@ -7,12 +7,13 @@ export const corPilar: Record<Pilar, string> = {
   curadoria: 'bg-olive',
 }
 
+// Selos de status em forma de pílula, tons suaves.
 export const estiloStatus: Record<Status, string> = {
-  ideia: 'border border-dashed border-muted/50 text-muted',
-  rascunho: 'bg-warm-beige text-charcoal',
-  agendado: 'bg-olive text-cream',
-  publicando: 'bg-gold/30 text-charcoal',
-  postado: 'bg-dark text-cream',
-  erro: 'border border-gold text-charcoal bg-gold/10',
-  verificar: 'border border-gold text-charcoal bg-gold/10',
+  ideia: 'bg-black/[0.05] text-muted',
+  rascunho: 'bg-accent/10 text-accent',
+  agendado: 'bg-olive/[0.12] text-olive',
+  publicando: 'bg-gold/15 text-accent',
+  postado: 'bg-charcoal text-white',
+  erro: 'bg-gold/20 text-charcoal',
+  verificar: 'bg-gold/20 text-charcoal',
 }

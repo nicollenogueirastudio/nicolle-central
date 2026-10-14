@@ -109,7 +109,7 @@ export default function PerformancePage() {
     <div className="min-h-screen bg-cream">
       <Sidebar />
       
-      <main className="ml-64 p-8">
+      <main className="ml-64 px-10 py-8 max-w-[1600px]">
         <Header 
           title="Performance" 
           subtitle="Análise completa das suas redes sociais"
@@ -123,7 +123,7 @@ export default function PerformancePage() {
               px-6 py-3 text-sm font-medium transition-all
               ${redeAtiva === 'geral' 
                 ? 'bg-dark text-cream' 
-                : 'bg-soft-white border border-black/5 hover:bg-warm-beige/50'
+                : 'bg-white rounded-2xl border border-linha shadow-card hover:bg-warm-beige/50'
               }
             `}
           >
@@ -139,7 +139,7 @@ export default function PerformancePage() {
                   px-6 py-3 text-sm font-medium transition-all flex items-center gap-2
                   ${redeAtiva === key 
                     ? `bg-gradient-to-r ${config.cor} text-white` 
-                    : 'bg-soft-white border border-black/5 hover:bg-warm-beige/50'
+                    : 'bg-white rounded-2xl border border-linha shadow-card hover:bg-warm-beige/50'
                   }
                 `}
               >
@@ -193,7 +193,7 @@ export default function PerformancePage() {
             {/* Cards por rede */}
             <div className="grid grid-cols-2 gap-6">
               {/* Instagram */}
-              <div className="bg-soft-white border border-black/5 p-6">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
@@ -213,15 +213,15 @@ export default function PerformancePage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl">{(metricas.instagram.seguidores / 1000).toFixed(1)}K</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Seguidores</div>
                   </div>
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl">{metricas.instagram.engajamento}%</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Engajamento</div>
                   </div>
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl text-green-600">+{metricas.instagram.crescimento}%</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Crescimento</div>
                   </div>
@@ -234,7 +234,7 @@ export default function PerformancePage() {
               </div>
 
               {/* YouTube */}
-              <div className="bg-soft-white border border-black/5 p-6">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
@@ -254,15 +254,15 @@ export default function PerformancePage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl">{(metricas.youtube.inscritos / 1000).toFixed(1)}K</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Inscritos</div>
                   </div>
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl">{metricas.youtube.retencao}%</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Retenção</div>
                   </div>
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl text-green-600">+{metricas.youtube.crescimento}%</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Crescimento</div>
                   </div>
@@ -274,7 +274,7 @@ export default function PerformancePage() {
               </div>
 
               {/* Pinterest */}
-              <div className="bg-soft-white border border-black/5 p-6">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-red-700 rounded-lg flex items-center justify-center text-2xl">
@@ -294,15 +294,15 @@ export default function PerformancePage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl">{(metricas.pinterest.seguidores / 1000).toFixed(1)}K</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Seguidores</div>
                   </div>
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl">{(metricas.pinterest.impressoes / 1000).toFixed(0)}K</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Impressões</div>
                   </div>
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl text-green-600">+{metricas.pinterest.crescimento}%</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Crescimento</div>
                   </div>
@@ -314,7 +314,7 @@ export default function PerformancePage() {
               </div>
 
               {/* Newsletter */}
-              <div className="bg-soft-white border border-black/5 p-6">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center">
@@ -334,15 +334,15 @@ export default function PerformancePage() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl">{metricas.newsletter.assinantes}</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Assinantes</div>
                   </div>
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl">{metricas.newsletter.taxaAbertura}%</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Abertura</div>
                   </div>
-                  <div className="text-center p-3 bg-cream rounded">
+                  <div className="text-center p-3 bg-cream rounded-xl rounded">
                     <div className="font-display text-2xl text-green-600">+{metricas.newsletter.crescimento}%</div>
                     <div className="text-[10px] text-muted uppercase tracking-wider">Crescimento</div>
                   </div>
@@ -392,22 +392,22 @@ export default function PerformancePage() {
             </div>
 
             <div className="grid grid-cols-4 gap-6 mb-8">
-              <div className="bg-soft-white border border-black/5 p-6 text-center">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
                 <Heart size={24} className="mx-auto mb-3 text-pink-500" />
                 <div className="font-display text-3xl">{(metricas.instagram.curtidas / 1000).toFixed(1)}K</div>
                 <div className="text-xs text-muted">Curtidas</div>
               </div>
-              <div className="bg-soft-white border border-black/5 p-6 text-center">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
                 <MessageCircle size={24} className="mx-auto mb-3 text-blue-500" />
                 <div className="font-display text-3xl">{metricas.instagram.comentarios}</div>
                 <div className="text-xs text-muted">Comentários</div>
               </div>
-              <div className="bg-soft-white border border-black/5 p-6 text-center">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
                 <Share2 size={24} className="mx-auto mb-3 text-green-500" />
                 <div className="font-display text-3xl">{metricas.instagram.compartilhamentos}</div>
                 <div className="text-xs text-muted">Compartilhamentos</div>
               </div>
-              <div className="bg-soft-white border border-black/5 p-6 text-center">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
                 <svg className="w-6 h-6 mx-auto mb-3 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
                 </svg>
@@ -417,7 +417,7 @@ export default function PerformancePage() {
             </div>
 
             <div className="grid grid-cols-2 gap-6">
-              <div className="bg-soft-white border border-black/5 p-6">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
                 <h3 className="font-display text-xl mb-4">Melhor Post do Mês</h3>
                 <div className="bg-cream p-4 rounded">
                   <div className="flex items-center gap-3 mb-3">
@@ -434,7 +434,7 @@ export default function PerformancePage() {
                 </div>
               </div>
 
-              <div className="bg-soft-white border border-black/5 p-6">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
                 <h3 className="font-display text-xl mb-4">Insights de Publicação</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -491,17 +491,17 @@ export default function PerformancePage() {
             </div>
 
             <div className="grid grid-cols-3 gap-6 mb-8">
-              <div className="bg-soft-white border border-black/5 p-6 text-center">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
                 <Play size={24} className="mx-auto mb-3 text-red-500" />
                 <div className="font-display text-3xl">{(metricas.youtube.visualizacoes / 1000).toFixed(0)}K</div>
                 <div className="text-xs text-muted">Visualizações</div>
               </div>
-              <div className="bg-soft-white border border-black/5 p-6 text-center">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
                 <Clock size={24} className="mx-auto mb-3 text-blue-500" />
                 <div className="font-display text-3xl">{metricas.youtube.horasAssistidas}h</div>
                 <div className="text-xs text-muted">Tempo de exibição</div>
               </div>
-              <div className="bg-soft-white border border-black/5 p-6 text-center">
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
                 <MousePointer size={24} className="mx-auto mb-3 text-green-500" />
                 <div className="font-display text-3xl">{metricas.youtube.ctr}%</div>
                 <div className="text-xs text-muted">CTR médio</div>
@@ -512,7 +512,7 @@ export default function PerformancePage() {
 
         {/* Pinterest e Newsletter seguem o mesmo padrão */}
         {(redeAtiva === 'pinterest' || redeAtiva === 'newsletter') && (
-          <div className="bg-soft-white border border-black/5 p-8 text-center">
+          <div className="bg-white rounded-2xl border border-linha shadow-card p-8 text-center">
             <p className="text-muted">Detalhes de {redeAtiva === 'pinterest' ? 'Pinterest' : 'Newsletter'} em desenvolvimento...</p>
           </div>
         )}

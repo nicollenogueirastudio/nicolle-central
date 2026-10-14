@@ -26,17 +26,17 @@ export default function StatCard({
   return (
     <div 
       className={`
-        p-6 border transition-all card-hover
+        p-6 rounded-2xl border transition-all card-hover
         ${highlight 
           ? 'bg-dark text-cream border-dark' 
-          : 'bg-soft-white border-black/5'
+          : 'bg-white border-linha shadow-card'
         }
       `}
     >
       <div className="flex items-start justify-between mb-4">
         <span 
           className={`
-            font-mono text-[10px] tracking-[0.15em] uppercase
+            text-[13px] font-medium
             ${highlight ? 'text-gold' : 'text-accent'}
           `}
         >
@@ -52,7 +52,7 @@ export default function StatCard({
       
       <div 
         className={`
-          font-display text-4xl mb-2
+          font-display text-[34px] leading-tight mb-1
           ${highlight ? 'text-gold' : 'text-charcoal'}
         `}
       >

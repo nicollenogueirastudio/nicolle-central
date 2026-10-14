@@ -299,14 +299,14 @@ export default function ConfiguracoesPage() {
     <div className="min-h-screen bg-cream">
       <Sidebar />
       
-      <main className="ml-64 p-8">
+      <main className="ml-64 px-10 py-8 max-w-[1600px]">
         <Header 
           title="Configurações" 
           subtitle="Conecte suas redes sociais e configure integrações"
         />
 
         {/* Aviso importante */}
-        <div className="bg-dark text-cream p-6 mb-8">
+        <div className="bg-dark text-white rounded-2xl shadow-card p-6 mb-8">
           <div className="flex items-start gap-4">
             <Key size={24} className="text-gold flex-shrink-0 mt-1" />
             <div>
@@ -328,7 +328,7 @@ export default function ConfiguracoesPage() {
             return (
               <div 
                 key={integracao.id}
-                className="bg-soft-white border border-black/5"
+                className="bg-white rounded-2xl border border-linha shadow-card"
               >
                 {/* Header da integração */}
                 <div className="p-6 border-b border-warm-beige/30">

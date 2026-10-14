@@ -67,7 +67,7 @@ export default function PlanejamentoPage() {
     <div className="min-h-screen bg-cream">
       <Sidebar />
       
-      <main className="ml-64 p-8">
+      <main className="ml-64 px-10 py-8 max-w-[1600px]">
         <Header 
           title="Planejamento Estratégico" 
           subtitle="Visão 2025-2028 · Da arquiteta à marca global"
@@ -101,7 +101,7 @@ export default function PlanejamentoPage() {
                 <a
                   key={pilar.id}
                   href={`/planejamento/metas?pilar=${pilar.id}`}
-                  className="bg-soft-white border border-black/5 p-6 card-hover group"
+                  className="bg-white rounded-2xl border border-linha shadow-card p-6 card-hover group"
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-12 h-12 bg-dark text-gold flex items-center justify-center">

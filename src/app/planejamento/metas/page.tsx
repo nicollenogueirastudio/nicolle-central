@@ -148,14 +148,14 @@ export default function MetasPage() {
     <div className="min-h-screen bg-cream">
       <Sidebar />
       
-      <main className="ml-64 p-8">
+      <main className="ml-64 px-10 py-8 max-w-[1600px]">
         <Header 
           title="Metas" 
           subtitle="Acompanhe e marque suas conquistas"
         />
 
         {/* Filtros */}
-        <div className="bg-soft-white border border-black/5 p-4 mb-6 flex items-center gap-6">
+        <div className="bg-white rounded-2xl border border-linha shadow-card p-4 mb-6 flex items-center gap-6">
           <div className="flex items-center gap-2">
             <Filter size={16} className="text-muted" />
             <span className="text-sm text-muted">Filtros:</span>
@@ -234,7 +234,7 @@ export default function MetasPage() {
               const concluidas = metasTrimestre.filter(m => m.concluida).length
               
               return (
-                <div key={key} className="bg-soft-white border border-black/5">
+                <div key={key} className="bg-white rounded-2xl border border-linha shadow-card">
                   <div className="bg-dark text-cream p-4 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <span className="font-display text-xl">{trimestre}</span>

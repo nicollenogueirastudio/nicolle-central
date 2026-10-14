@@ -81,20 +81,22 @@ export default function MarketingPage() {
   const doMes = comData.filter((p) => partesBR(p.data_hora!).data.slice(0, 7) === referencia.slice(0, 7))
   const abrir = (post: Post) => setEditor({ post, data: null })
 
+
   return (
     <div className="min-h-screen bg-cream">
       <Sidebar />
 
-      <main className="ml-64 p-8">
-        <Header title="Marketing" subtitle="Calendário de posts" />
+      <main className="ml-64 px-10 py-8 max-w-[1600px]">
+        <Header title="Calendário de posts" subtitle="Planeje, organize e acompanhe o Instagram" />
 
-        <div className="flex flex-wrap items-center gap-4 mb-6">
-          <div className="flex border border-black/10 bg-soft-white">
+        <div className="flex flex-wrap items-center gap-4 mb-5">
+          <div className="flex p-[3px] rounded-[10px] bg-black/[0.06]">
             {VISOES.map((v) => (
               <button
                 key={v.id}
-                onClick={() => setVisao(v.id)}
-                className={`px-4 py-2 text-sm transition-colors ${visao === v.id ? 'bg-dark text-cream' : 'text-muted hover:text-charcoal'}`}
+                onClick={() => { setVisao(v.id); setArquivados(false) }}
+                className={`px-4 py-[5px] rounded-[7px] text-[13px] transition-all duration-200
+                  ${visao === v.id && !arquivados ? 'bg-white text-charcoal font-medium shadow-controle' : 'text-charcoal/70 hover:text-charcoal'}`}
               >
                 {v.nome}
               </button>
@@ -102,49 +104,53 @@ export default function MarketingPage() {
           </div>
 
           {visao !== 'grade' && !arquivados && (
-            <div className="flex items-center gap-2">
-              <button onClick={() => navegar(-1)} className="p-2 text-muted hover:text-charcoal"><ChevronLeft size={18} /></button>
-              <span className="font-display text-xl text-charcoal min-w-[190px] text-center">{tituloPeriodo}</span>
-              <button onClick={() => navegar(1)} className="p-2 text-muted hover:text-charcoal"><ChevronRight size={18} /></button>
-              <button onClick={() => setReferencia(hojeISO())} className="text-xs text-accent hover:text-charcoal ml-1">Hoje</button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => navegar(-1)} aria-label="Anterior" className="w-8 h-8 rounded-full flex items-center justify-center text-charcoal/70 hover:bg-black/[0.05] transition-colors"><ChevronLeft size={18} /></button>
+              <button onClick={() => navegar(1)} aria-label="Próximo" className="w-8 h-8 rounded-full flex items-center justify-center text-charcoal/70 hover:bg-black/[0.05] transition-colors"><ChevronRight size={18} /></button>
+              <span className="font-display text-[22px] text-charcoal ml-2 mr-3 inline-block first-letter:uppercase">{tituloPeriodo}</span>
+              <button onClick={() => setReferencia(hojeISO())} className="px-3 py-1 rounded-full text-[12px] font-medium text-charcoal bg-black/[0.05] hover:bg-black/[0.09] transition-colors">Hoje</button>
             </div>
           )}
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => setArquivados(!arquivados)}
-              className={`flex items-center gap-1.5 text-xs ${arquivados ? 'text-charcoal' : 'text-muted hover:text-charcoal'}`}
+              className={`flex items-center gap-1.5 px-3 py-[7px] rounded-full text-[13px] transition-colors
+                ${arquivados ? 'bg-black/[0.07] text-charcoal font-medium' : 'text-muted hover:text-charcoal hover:bg-black/[0.04]'}`}
             >
-              <Archive size={14} /> {arquivados ? 'Voltar ao calendário' : 'Arquivados'}
+              <Archive size={14} /> Arquivados
             </button>
             <button
               onClick={() => setEditor({ post: null, data: null })}
-              className="flex items-center gap-1.5 border border-dark/20 px-4 py-2 text-sm text-charcoal hover:bg-soft-white"
+              className="flex items-center gap-1.5 px-4 py-[7px] rounded-full text-[13px] font-medium text-charcoal bg-white border border-black/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:bg-white/60 transition-colors"
             >
-              <Lightbulb size={15} /> Nova ideia
+              <Lightbulb size={14} /> Nova ideia
             </button>
             <button
               onClick={() => setEditor({ post: null, data: visao === 'grade' ? hojeISO() : referencia })}
-              className="flex items-center gap-1.5 bg-dark text-cream px-4 py-2 text-sm hover:bg-charcoal"
+              className="flex items-center gap-1.5 px-4 py-[7px] rounded-full text-[13px] font-medium text-white bg-charcoal hover:bg-black active:scale-[0.98] transition-all"
             >
               <Plus size={15} /> Novo post
             </button>
           </div>
         </div>
 
-        {erro && <p className="mb-4 text-sm text-accent">Erro ao carregar: {erro}</p>}
+        {erro && (
+          <div className="mb-4 rounded-xl bg-gold/15 px-4 py-3 text-[13px] text-charcoal">Não foi possível carregar: {erro}</div>
+        )}
 
         {arquivados ? (
-          <div className="bg-soft-white border border-black/5 p-6">
-            <h2 className="font-display text-xl mb-4">Arquivados</h2>
-            {posts.length === 0 && !carregando && <p className="text-sm text-muted">Nada arquivado.</p>}
-            <div className="grid grid-cols-4 gap-2">
+          <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
+            <h2 className="font-display text-[20px] mb-1">Arquivados</h2>
+            <p className="text-[13px] text-muted mb-5">Posts guardados fora do calendário. Abra um para restaurar.</p>
+            {posts.length === 0 && !carregando && <p className="text-[13px] text-muted py-8 text-center">Nada arquivado.</p>}
+            <div className="grid grid-cols-4 gap-2.5">
               {posts.map((p) => <CartaoPost key={p.id} post={p} onAbrir={abrir} />)}
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-[1fr_220px] gap-6">
-            <div className={carregando ? 'opacity-60 transition-opacity' : ''}>
+          <div className="grid grid-cols-[1fr_250px] gap-6 items-start">
+            <div className={`transition-opacity duration-300 ${carregando ? 'opacity-50' : ''}`}>
               {visao === 'grade'
                 ? <GradeFeed posts={comData} onAbrir={abrir} />
                 : (
@@ -159,26 +165,55 @@ export default function MarketingPage() {
                 )}
             </div>
 
-            <aside className="space-y-6">
+            <aside className="space-y-4 sticky top-6">
               {visao !== 'grade' && (
-                <div className="bg-soft-white border border-black/5 p-4">
-                  <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-3">No mês · {doMes.length} posts</div>
-                  {(Object.keys(PILARES) as (keyof typeof PILARES)[]).map((k) => (
-                    <div key={k} className="flex items-center gap-2 text-sm text-charcoal py-0.5">
-                      <span className={`w-2 h-2 rounded-full ${corPilar[k]}`} />
-                      {PILARES[k]}
-                      <span className="ml-auto font-mono text-xs text-muted">{doMes.filter((p) => p.pilar === k).length}</span>
-                    </div>
-                  ))}
+                <div className="bg-white rounded-2xl border border-linha shadow-card p-5">
+                  <div className="text-[12px] text-muted first-letter:uppercase">{mesExtenso(referencia.slice(0, 7))}</div>
+                  <div className="flex items-baseline gap-1.5 mt-0.5 mb-4">
+                    <span className="font-display text-[34px] leading-none text-charcoal tabular-nums">{doMes.length}</span>
+                    <span className="text-[13px] text-muted">{doMes.length === 1 ? 'post' : 'posts'}</span>
+                  </div>
+                  <div className="space-y-3">
+                    {(Object.keys(PILARES) as (keyof typeof PILARES)[]).map((k) => {
+                      const qtd = doMes.filter((p) => p.pilar === k).length
+                      const parte = doMes.length ? (qtd / doMes.length) * 100 : 0
+                      return (
+                        <div key={k}>
+                          <div className="flex items-center gap-2 text-[13px] text-charcoal">
+                            <span className={`w-2 h-2 rounded-full ${corPilar[k]}`} />
+                            {PILARES[k]}
+                            <span className="ml-auto text-muted tabular-nums">{qtd}</span>
+                          </div>
+                          <div className="mt-1.5 h-1 rounded-full bg-black/[0.06] overflow-hidden">
+                            <div className={`h-full rounded-full ${corPilar[k]} transition-all duration-500`} style={{ width: `${parte}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 
-              <div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-2">Ideias sem data · {ideias.length}</div>
-                <p className="text-[11px] text-muted mb-2">Arraste uma ideia para um dia do calendário.</p>
-                <div className="space-y-1.5">
-                  {ideias.map((p) => <CartaoPost key={p.id} post={p} onAbrir={abrir} />)}
+              <div className="bg-white rounded-2xl border border-linha shadow-card p-5">
+                <div className="flex items-baseline justify-between mb-1">
+                  <span className="text-[13px] font-medium text-charcoal">Ideias sem data</span>
+                  <span className="text-[12px] text-muted tabular-nums">{ideias.length}</span>
                 </div>
+                <p className="text-[12px] text-muted mb-3">Arraste para um dia do calendário.</p>
+                {ideias.length === 0
+                  ? (
+                    <button
+                      onClick={() => setEditor({ post: null, data: null })}
+                      className="w-full rounded-xl border-[1.5px] border-dashed border-black/10 py-5 text-[12px] text-muted hover:border-accent hover:text-accent transition-colors"
+                    >
+                      Guardar uma ideia
+                    </button>
+                  )
+                  : (
+                    <div className="space-y-1.5">
+                      {ideias.map((p) => <CartaoPost key={p.id} post={p} onAbrir={abrir} />)}
+                    </div>
+                  )}
               </div>
             </aside>
           </div>

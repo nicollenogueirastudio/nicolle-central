@@ -46,7 +46,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-cream">
       <Sidebar />
       
-      <main className="ml-64 p-8">
+      <main className="ml-64 px-10 py-8 max-w-[1600px]">
         <Header 
           title="Dashboard" 
           subtitle="Visão geral do seu progresso e performance"
@@ -87,7 +87,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-8">
           {/* Coluna 1: Progresso Estratégico */}
           <div className="col-span-2">
-            <div className="bg-soft-white border border-black/5 p-6 mb-6">
+            <div className="bg-white rounded-2xl border border-linha shadow-card p-6 mb-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-display text-2xl">Progresso por Pilar</h2>
                 <a href="/planejamento/metas" className="text-xs text-accent hover:text-gold flex items-center gap-1">
@@ -102,7 +102,7 @@ export default function Dashboard() {
             </div>
 
             {/* Próximas Metas */}
-            <div className="bg-soft-white border border-black/5 p-6">
+            <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-display text-2xl">Próximas Metas</h2>
                 <a href="/planejamento/metas" className="text-xs text-accent hover:text-gold flex items-center gap-1">
@@ -114,7 +114,7 @@ export default function Dashboard() {
                 {proximasMetas.map((meta) => (
                   <div 
                     key={meta.id}
-                    className="flex items-center gap-4 p-4 bg-cream/50 hover:bg-cream transition-colors cursor-pointer"
+                    className="flex items-center gap-4 p-4 bg-cream/50 rounded-xl hover:bg-cream transition-colors cursor-pointer"
                   >
                     {meta.concluida ? (
                       <CheckCircle2 size={20} className="text-gold" />
@@ -131,7 +131,7 @@ export default function Dashboard() {
 
           {/* Coluna 2: Redes Sociais */}
           <div>
-            <div className="bg-dark text-cream p-6 mb-6">
+            <div className="bg-dark text-white rounded-2xl shadow-card p-6 mb-6">
               <h2 className="font-display text-2xl mb-6">Performance das Redes</h2>
               
               <div className="space-y-4">
@@ -164,16 +164,16 @@ export default function Dashboard() {
             </div>
 
             {/* Newsletter */}
-            <div className="bg-soft-white border border-black/5 p-6">
+            <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
               <h2 className="font-display text-2xl mb-4">Casa NOGS</h2>
               <p className="text-sm text-muted mb-4">Última edição publicada há 5 dias</p>
               
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="text-center p-3 bg-cream">
+                <div className="text-center p-3 bg-cream rounded-xl">
                   <div className="font-display text-2xl text-charcoal">68%</div>
                   <div className="text-xs text-muted">Taxa de abertura</div>
                 </div>
-                <div className="text-center p-3 bg-cream">
+                <div className="text-center p-3 bg-cream rounded-xl">
                   <div className="font-display text-2xl text-charcoal">12%</div>
                   <div className="text-xs text-muted">Taxa de cliques</div>
                 </div>
@@ -190,7 +190,7 @@ export default function Dashboard() {
         </div>
 
         {/* Calendário resumido */}
-        <div className="mt-8 bg-soft-white border border-black/5 p-6">
+        <div className="mt-8 bg-white rounded-2xl border border-linha shadow-card p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-2xl">Próximos Posts</h2>
             <a href="/marketing/calendario" className="text-xs text-accent hover:text-gold flex items-center gap-1">

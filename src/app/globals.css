@@ -1,18 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-
 :root {
-  --color-cream: #F5F0E8;
-  --color-warm-beige: #E8E0D4;
-  --color-charcoal: #2C2C2C;
-  --color-dark: #1A1A1A;
-  --color-muted: #6B6B6B;
+  --color-cream: #F5F5F3;
+  --color-warm-beige: #E8E6E1;
+  --color-charcoal: #1D1D1F;
+  --color-dark: #1D1D1F;
+  --color-muted: #86868B;
   --color-accent: #8B7355;
-  --color-gold: #C4A574;
-  --color-soft-white: #FDFCFA;
+  --color-gold: #B59A6E;
+  --color-soft-white: #FFFFFF;
+  --fonte: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', system-ui, sans-serif;
 }
 
 * {
@@ -23,166 +24,148 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--fonte);
+  font-feature-settings: 'cv11', 'ss01';
   background-color: var(--color-cream);
   color: var(--color-charcoal);
-  line-height: 1.6;
+  line-height: 1.5;
+  letter-spacing: -0.006em;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+::selection {
+  background: rgba(139, 115, 85, 0.22);
 }
 
-::-webkit-scrollbar-track {
-  background: var(--color-warm-beige);
-}
-
+/* Barra de rolagem discreta, como no macOS */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-accent);
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 0, 0, 0.32); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-gold);
-}
-
-/* Typography */
+/* Tipografia */
 .font-display {
-  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.022em;
 }
 
 .font-mono {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Animations */
+/* Animações */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(-20px); }
+  from { opacity: 0; transform: translateX(-12px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
+.animate-fadeIn { animation: fadeIn 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
+.animate-slideIn { animation: slideIn 0.35s cubic-bezier(0.25, 0.1, 0.25, 1) forwards; }
 
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-.animate-slideIn {
-  animation: slideIn 0.4s ease-out forwards;
-}
-
-/* Card hover effects */
+/* Cartões */
 .card-hover {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1), box-shadow 0.3s ease;
 }
-
 .card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
 }
 
-/* Progress bar animation */
 .progress-bar {
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-/* Button styles */
+/* Botões */
 .btn-primary {
-  background: var(--color-gold);
+  background: var(--color-dark);
   color: white;
-  padding: 12px 24px;
+  padding: 9px 18px;
   border: none;
-  font-size: 12px;
+  border-radius: 999px;
+  font-size: 14px;
   font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, transform 0.1s ease;
 }
-
-.btn-primary:hover {
-  background: var(--color-accent);
-}
+.btn-primary:hover { background: #000; }
+.btn-primary:active { transform: scale(0.98); }
 
 .btn-secondary {
-  background: transparent;
-  border: 1px solid var(--color-charcoal);
+  background: rgba(0, 0, 0, 0.05);
   color: var(--color-charcoal);
-  padding: 12px 24px;
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-secondary:hover {
-  background: var(--color-charcoal);
-  color: white;
-}
-
-/* Input styles */
-input, textarea, select {
-  font-family: 'Inter', system-ui, sans-serif;
+  padding: 9px 18px;
+  border: none;
+  border-radius: 999px;
   font-size: 14px;
-  padding: 12px 16px;
-  border: 1px solid var(--color-warm-beige);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.btn-secondary:hover { background: rgba(0, 0, 0, 0.09); }
+
+/* Campos — padrão para as páginas antigas; os componentes novos usam classes próprias */
+input, textarea, select {
+  font-family: var(--fonte);
+  font-size: 14px;
+  padding: 9px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
   background: white;
   color: var(--color-charcoal);
   outline: none;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input:focus, textarea:focus, select:focus {
-  border-color: var(--color-gold);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(139, 115, 85, 0.18);
 }
 
-/* Section label */
+input[type='checkbox'], input[type='radio'] {
+  padding: 0;
+  accent-color: var(--color-dark);
+}
+
+/* Rótulo de seção */
 .section-label {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-muted);
 }
 
 /* Tooltip */
-.tooltip {
-  position: relative;
-}
-
+.tooltip { position: relative; }
 .tooltip::after {
   content: attr(data-tooltip);
   position: absolute;
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  padding: 8px 12px;
-  background: var(--color-dark);
+  padding: 6px 10px;
+  background: rgba(29, 29, 31, 0.92);
   color: white;
   font-size: 12px;
   white-space: nowrap;
-  border-radius: 4px;
+  border-radius: 8px;
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s ease;
 }
-
-.tooltip:hover::after {
-  opacity: 1;
-  visibility: visible;
-}
+.tooltip:hover::after { opacity: 1; visibility: visible; }

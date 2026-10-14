@@ -139,7 +139,7 @@ export default function NewsletterPage() {
     <div className="min-h-screen bg-cream">
       <Sidebar />
       
-      <main className="ml-64 p-8">
+      <main className="ml-64 px-10 py-8 max-w-[1600px]">
         <Header 
           title="Newsletter" 
           subtitle="Casa NOGS · Curadoria de lifestyle e design"
@@ -147,22 +147,22 @@ export default function NewsletterPage() {
 
         {/* Stats da Newsletter */}
         <div className="grid grid-cols-4 gap-6 mb-8">
-          <div className="bg-dark text-cream p-6">
+          <div className="bg-dark text-white rounded-2xl shadow-card p-6">
             <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-gold mb-2">Assinantes</div>
             <div className="font-display text-4xl text-gold">890</div>
             <div className="text-xs text-warm-beige mt-1">+12% este mês</div>
           </div>
-          <div className="bg-soft-white border border-black/5 p-6">
+          <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
             <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-accent mb-2">Taxa de Abertura</div>
             <div className="font-display text-4xl">68%</div>
             <div className="text-xs text-muted mt-1">Média da indústria: 42%</div>
           </div>
-          <div className="bg-soft-white border border-black/5 p-6">
+          <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
             <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-accent mb-2">Taxa de Cliques</div>
             <div className="font-display text-4xl">12%</div>
             <div className="text-xs text-muted mt-1">Média da indústria: 4%</div>
           </div>
-          <div className="bg-soft-white border border-black/5 p-6">
+          <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
             <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-accent mb-2">Edições</div>
             <div className="font-display text-4xl">3</div>
             <div className="text-xs text-muted mt-1">1 rascunho pendente</div>
@@ -177,7 +177,7 @@ export default function NewsletterPage() {
               px-6 py-3 text-sm font-medium transition-all flex items-center gap-2
               ${abaAtiva === 'edicoes' 
                 ? 'bg-dark text-cream' 
-                : 'bg-soft-white border border-black/5 hover:bg-warm-beige/50'
+                : 'bg-white rounded-2xl border border-linha shadow-card hover:bg-warm-beige/50'
               }
             `}
           >
@@ -190,7 +190,7 @@ export default function NewsletterPage() {
               px-6 py-3 text-sm font-medium transition-all flex items-center gap-2
               ${abaAtiva === 'referencias' 
                 ? 'bg-dark text-cream' 
-                : 'bg-soft-white border border-black/5 hover:bg-warm-beige/50'
+                : 'bg-white rounded-2xl border border-linha shadow-card hover:bg-warm-beige/50'
               }
             `}
           >
@@ -214,7 +214,7 @@ export default function NewsletterPage() {
               {edicoes.map(edicao => (
                 <div 
                   key={edicao.id}
-                  className="bg-soft-white border border-black/5 p-6 card-hover"
+                  className="bg-white rounded-2xl border border-linha shadow-card p-6 card-hover"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -330,7 +330,7 @@ export default function NewsletterPage() {
                 placeholder="Buscar referências..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-soft-white border border-black/5"
+                className="w-full pl-12 pr-4 py-3 bg-white rounded-2xl border border-linha shadow-card"
               />
             </div>
 
@@ -342,7 +342,7 @@ export default function NewsletterPage() {
                 return (
                   <div 
                     key={ref.id}
-                    className="bg-soft-white border border-black/5 p-5 card-hover group"
+                    className="bg-white rounded-2xl border border-linha shadow-card p-5 card-hover group"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <span className={`
