@@ -34,10 +34,7 @@ const navigation = [
     href: '/marketing',
     icon: Megaphone,
     submenu: [
-      { name: 'Calendário Editorial', href: '/marketing/calendario' },
-      { name: 'Pilares de Conteúdo', href: '/marketing/pilares' },
-      { name: 'Campanhas', href: '/marketing/campanhas' },
-      { name: 'Banco de Ideias', href: '/marketing/ideias' },
+      { name: 'Calendário de posts', href: '/marketing' },
     ]
   },
   {

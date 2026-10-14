@@ -16,6 +16,7 @@ module.exports = {
         accent: '#8B7355',
         gold: '#C4A574',
         'soft-white': '#FDFCFA',
+        olive: '#6B6F4E',
       },
       fontFamily: {
         display: ['Cormorant Garamond', 'Georgia', 'serif'],
