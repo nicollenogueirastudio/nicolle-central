@@ -1,8 +1,7 @@
 'use client'
 
 import { Bell, Search, User } from 'lucide-react'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
+import { dataExtensoBR } from '@/lib/datas'
 
 interface HeaderProps {
   title: string
@@ -10,7 +9,7 @@ interface HeaderProps {
 }
 
 export default function Header({ title, subtitle }: HeaderProps) {
-  const today = format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })
+  const today = dataExtensoBR(new Date())
 
   return (
     <header className="flex items-center justify-between mb-8">
@@ -22,7 +21,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-6">
-        <span className="font-mono text-xs text-muted capitalize">{today}</span>
+        <span className="font-mono text-xs text-muted capitalize" suppressHydrationWarning>{today}</span>
         
         <div className="flex items-center gap-4">
           <button className="p-2 text-muted hover:text-charcoal transition-colors">

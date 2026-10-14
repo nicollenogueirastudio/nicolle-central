@@ -9,7 +9,8 @@ import {
   BarChart3, 
   Mail,
   Settings,
-  ChevronRight
+  ChevronRight,
+  LogOut
 } from 'lucide-react'
 
 const navigation = [
@@ -138,6 +139,15 @@ export default function Sidebar() {
           <Settings size={18} />
           <span>Configurações</span>
         </Link>
+        <form action="/auth/sair" method="post">
+          <button
+            type="submit"
+            className="w-full flex items-center gap-3 px-2 py-2 text-sm text-muted hover:text-cream transition-all"
+          >
+            <LogOut size={18} />
+            <span>Sair</span>
+          </button>
+        </form>
       </div>
     </aside>
   )
