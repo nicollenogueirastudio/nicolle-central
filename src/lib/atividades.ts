@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 // Histórico de atividades: toda ação importante (criar, editar, mudar status, arquivar)
 // grava uma linha em `atividades`. Toda tela nova já nasce chamando esta função.
 
-export type Acao = 'criou' | 'editou' | 'mudou_status' | 'arquivou' | 'restaurou' | 'entrou' | 'saiu'
+export type Acao = 'criou' | 'editou' | 'mudou_status' | 'arquivou' | 'restaurou' | 'entrou' | 'saiu' | 'sincronizou'
 
 export async function registrarAtividade(
   supabase: SupabaseClient,

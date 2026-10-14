@@ -3,8 +3,8 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 type CookieParaGravar = { name: string; value: string; options: CookieOptions }
 import { NextResponse, type NextRequest } from 'next/server'
 
-// Páginas que abrem sem login.
-const ROTAS_PUBLICAS = ['/login', '/auth/callback']
+// Páginas que abrem sem login. /api/cron se protege sozinha com o CRON_SECRET.
+const ROTAS_PUBLICAS = ['/login', '/auth/callback', '/api/cron']
 
 export async function atualizarSessao(request: NextRequest) {
   let response = NextResponse.next({ request })

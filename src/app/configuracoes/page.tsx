@@ -1,465 +1,205 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { RefreshCw, Check, ChevronDown, ExternalLink, Loader2 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import { 
-  Instagram, 
-  Youtube, 
-  Mail,
-  Database,
-  Key,
-  Check,
-  X,
-  AlertCircle,
-  ExternalLink,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  Save
-} from 'lucide-react'
+import { criarClienteNavegador } from '@/lib/supabase/client'
+import { dataBR, dataHoraBR } from '@/lib/datas'
+import { ORDEM_REDES, REDES, type Conexao, type Rede } from '@/lib/redes/tipos'
 
-type IntegracaoStatus = 'conectado' | 'desconectado' | 'erro'
+type Metrica = { rede: Rede; dia: string; seguidores: number | null; publicacoes: number | null }
+type Edicao = { id: string; titulo: string; link: string; publicado_em: string | null }
 
-type Integracao = {
-  id: string
-  nome: string
-  descricao: string
-  icon: any
-  cor: string
-  status: IntegracaoStatus
-  campos: {
-    id: string
-    label: string
-    tipo: 'text' | 'password'
-    placeholder: string
-    valor: string
-    ajuda?: string
-  }[]
-  docUrl: string
+// Monogramas neutros no lugar das cores das marcas (paleta interna sem vermelho/rosa).
+const MONOGRAMA: Record<Rede, string> = { instagram: 'Ig', substack: 'S', pinterest: 'P', tiktok: 'Tt', linkedin: 'in' }
+
+// O que cada rede entrega e o que falta para ligar.
+const SOBRE: Record<Rede, { entrega: string; passos?: string[]; aviso?: string }> = {
+  instagram: {
+    entrega: 'Seguidores todo dia, posts antigos com métricas e, no futuro, publicação automática.',
+    passos: [
+      'Criar um app do tipo "Empresa" em developers.facebook.com.',
+      'No Gerenciador de Negócios, criar um usuário do sistema (token que não expira).',
+      'Dar a ele acesso à sua página do Facebook e à conta do Instagram.',
+      'Gerar o token com as permissões de leitura do Instagram e de anúncios.',
+      'Colar o token na Vercel como META_TOKEN (a Claudinha faz essa parte).',
+    ],
+  },
+  substack: {
+    entrega: 'Lista das edições da Casa Nogs com título, data e link, lida do feed público.',
+    aviso: 'O Substack não libera assinantes nem aberturas. Esses números entram à mão ou pela planilha que ele exporta.',
+  },
+  pinterest: {
+    entrega: 'Pins, impressões, salvos e cliques.',
+    passos: ['Ter conta comercial no Pinterest.', 'Criar um app em developers.pinterest.com.', 'Autorizar a Central a ler a conta.'],
+  },
+  tiktok: {
+    entrega: 'Vídeos com visualizações, curtidas e comentários.',
+    passos: ['Criar um app em developers.tiktok.com.', 'Pedir o acesso de leitura (o TikTok analisa e aprova em alguns dias).', 'Autorizar a Central a ler a conta.'],
+  },
+  linkedin: {
+    entrega: 'Muito pouco para perfil pessoal: o LinkedIn só libera números de páginas de empresa.',
+    aviso: 'Por enquanto, o melhor caminho é anotar os números do mês à mão.',
+  },
 }
 
-const integracoesIniciais: Integracao[] = [
-  {
-    id: 'supabase',
-    nome: 'Supabase',
-    descricao: 'Banco de dados para armazenar suas metas, posts e referências',
-    icon: Database,
-    cor: 'bg-emerald-600',
-    status: 'desconectado',
-    campos: [
-      {
-        id: 'supabase_url',
-        label: 'Project URL',
-        tipo: 'text',
-        placeholder: 'https://xxxxx.supabase.co',
-        valor: '',
-        ajuda: 'Encontre em: Settings > API > Project URL'
-      },
-      {
-        id: 'supabase_anon_key',
-        label: 'Anon Key',
-        tipo: 'password',
-        placeholder: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        valor: '',
-        ajuda: 'Encontre em: Settings > API > anon public'
-      }
-    ],
-    docUrl: 'https://supabase.com/docs'
-  },
-  {
-    id: 'instagram',
-    nome: 'Instagram',
-    descricao: 'Métricas de seguidores, engajamento e alcance',
-    icon: Instagram,
-    cor: 'bg-gradient-to-br from-purple-500 to-pink-500',
-    status: 'desconectado',
-    campos: [
-      {
-        id: 'meta_app_id',
-        label: 'App ID',
-        tipo: 'text',
-        placeholder: '123456789...',
-        valor: '',
-        ajuda: 'Crie um app em developers.facebook.com'
-      },
-      {
-        id: 'meta_app_secret',
-        label: 'App Secret',
-        tipo: 'password',
-        placeholder: 'abc123...',
-        valor: '',
-      },
-      {
-        id: 'instagram_access_token',
-        label: 'Access Token',
-        tipo: 'password',
-        placeholder: 'IGQVJ...',
-        valor: '',
-        ajuda: 'Token de longa duração do Instagram Graph API'
-      },
-      {
-        id: 'instagram_business_id',
-        label: 'Business Account ID',
-        tipo: 'text',
-        placeholder: '17841400...',
-        valor: '',
-      }
-    ],
-    docUrl: 'https://developers.facebook.com/docs/instagram-api'
-  },
-  {
-    id: 'youtube',
-    nome: 'YouTube',
-    descricao: 'Inscritos, visualizações e analytics do canal',
-    icon: Youtube,
-    cor: 'bg-red-600',
-    status: 'desconectado',
-    campos: [
-      {
-        id: 'youtube_api_key',
-        label: 'API Key',
-        tipo: 'password',
-        placeholder: 'AIzaSy...',
-        valor: '',
-        ajuda: 'Crie em console.cloud.google.com > APIs & Services'
-      },
-      {
-        id: 'youtube_channel_id',
-        label: 'Channel ID',
-        tipo: 'text',
-        placeholder: 'UC...',
-        valor: '',
-        ajuda: 'Encontre em: YouTube Studio > Configurações > Canal'
-      }
-    ],
-    docUrl: 'https://developers.google.com/youtube/v3'
-  },
-  {
-    id: 'pinterest',
-    nome: 'Pinterest',
-    descricao: 'Impressões, salvamentos e cliques',
-    icon: () => <span className="text-xl">📌</span>,
-    cor: 'bg-red-700',
-    status: 'desconectado',
-    campos: [
-      {
-        id: 'pinterest_app_id',
-        label: 'App ID',
-        tipo: 'text',
-        placeholder: '123456...',
-        valor: '',
-        ajuda: 'Crie em developers.pinterest.com'
-      },
-      {
-        id: 'pinterest_access_token',
-        label: 'Access Token',
-        tipo: 'password',
-        placeholder: 'pina_...',
-        valor: '',
-      }
-    ],
-    docUrl: 'https://developers.pinterest.com/docs/api/v5/'
-  },
-  {
-    id: 'tiktok',
-    nome: 'TikTok',
-    descricao: 'Seguidores, visualizações e engajamento',
-    icon: () => <span className="text-xl">🎵</span>,
-    cor: 'bg-black',
-    status: 'desconectado',
-    campos: [
-      {
-        id: 'tiktok_client_key',
-        label: 'Client Key',
-        tipo: 'text',
-        placeholder: 'aw...',
-        valor: '',
-        ajuda: 'Crie em developers.tiktok.com (requer conta Business)'
-      },
-      {
-        id: 'tiktok_client_secret',
-        label: 'Client Secret',
-        tipo: 'password',
-        placeholder: '...',
-        valor: '',
-      },
-      {
-        id: 'tiktok_access_token',
-        label: 'Access Token',
-        tipo: 'password',
-        placeholder: 'act...',
-        valor: '',
-      }
-    ],
-    docUrl: 'https://developers.tiktok.com/doc/'
-  },
-  {
-    id: 'substack',
-    nome: 'Substack (Casa NOGS)',
-    descricao: 'Métricas da newsletter via RSS',
-    icon: Mail,
-    cor: 'bg-amber-600',
-    status: 'desconectado',
-    campos: [
-      {
-        id: 'substack_url',
-        label: 'URL do Substack',
-        tipo: 'text',
-        placeholder: 'https://casanogs.substack.com',
-        valor: '',
-        ajuda: 'O feed RSS será: /feed'
-      }
-    ],
-    docUrl: 'https://support.substack.com/'
-  },
-]
+export default function ConexoesPage() {
+  const supabase = useMemo(() => criarClienteNavegador(), [])
+  const [conexoes, setConexoes] = useState<Conexao[]>([])
+  const [metricas, setMetricas] = useState<Metrica[]>([])
+  const [edicoes, setEdicoes] = useState<Edicao[]>([])
+  const [rodando, setRodando] = useState<Rede | null>(null)
+  const [aberta, setAberta] = useState<Rede | null>(null)
+  const [aviso, setAviso] = useState<{ rede: Rede; texto: string; ok: boolean } | null>(null)
 
-export default function ConfiguracoesPage() {
-  const [integracoes, setIntegracoes] = useState<Integracao[]>(integracoesIniciais)
-  const [camposVisiveis, setCamposVisiveis] = useState<Record<string, boolean>>({})
-  const [salvando, setSalvando] = useState<string | null>(null)
-  const [testando, setTestando] = useState<string | null>(null)
+  const carregar = useCallback(async () => {
+    const [c, m, e] = await Promise.all([
+      supabase.from('conexoes').select('*'),
+      supabase.from('metricas_conta').select('rede, dia, seguidores, publicacoes').order('dia', { ascending: false }).limit(50),
+      supabase.from('substack_edicoes').select('id, titulo, link, publicado_em').order('publicado_em', { ascending: false }).limit(3),
+    ])
+    setConexoes((c.data ?? []) as Conexao[])
+    setMetricas((m.data ?? []) as Metrica[])
+    setEdicoes((e.data ?? []) as Edicao[])
+  }, [supabase])
 
-  const toggleVisibilidade = (campoId: string) => {
-    setCamposVisiveis(prev => ({
-      ...prev,
-      [campoId]: !prev[campoId]
-    }))
-  }
+  useEffect(() => { carregar() }, [carregar])
 
-  const atualizarCampo = (integracaoId: string, campoId: string, valor: string) => {
-    setIntegracoes(prev => prev.map(int => {
-      if (int.id === integracaoId) {
-        return {
-          ...int,
-          campos: int.campos.map(c => 
-            c.id === campoId ? { ...c, valor } : c
-          )
-        }
-      }
-      return int
-    }))
-  }
-
-  const salvarIntegracao = async (integracaoId: string) => {
-    setSalvando(integracaoId)
-    // Simula salvamento
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setSalvando(null)
-    
-    // Atualiza status (em produção, verificaria se realmente conectou)
-    setIntegracoes(prev => prev.map(int => 
-      int.id === integracaoId 
-        ? { ...int, status: 'conectado' as IntegracaoStatus } 
-        : int
-    ))
-  }
-
-  const testarConexao = async (integracaoId: string) => {
-    setTestando(integracaoId)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setTestando(null)
-  }
-
-  const getStatusIcon = (status: IntegracaoStatus) => {
-    switch (status) {
-      case 'conectado':
-        return <Check size={16} className="text-green-600" />
-      case 'erro':
-        return <X size={16} className="text-red-500" />
-      default:
-        return <AlertCircle size={16} className="text-amber-500" />
+  async function sincronizar(rede: Rede) {
+    setRodando(rede)
+    setAviso(null)
+    try {
+      const resposta = await fetch('/api/sincronizar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rede }),
+      })
+      const r = await resposta.json()
+      setAviso({ rede, ok: r.ok, texto: r.ok ? `Atualizado: ${r.resumo}` : r.motivo })
+      await carregar()
+    } catch {
+      setAviso({ rede, ok: false, texto: 'Não foi possível falar com o servidor.' })
+    } finally {
+      setRodando(null)
     }
   }
 
-  const getStatusText = (status: IntegracaoStatus) => {
-    switch (status) {
-      case 'conectado':
-        return 'Conectado'
-      case 'erro':
-        return 'Erro na conexão'
-      default:
-        return 'Não configurado'
-    }
-  }
-
-  const getStatusColor = (status: IntegracaoStatus) => {
-    switch (status) {
-      case 'conectado':
-        return 'bg-green-100 text-green-700'
-      case 'erro':
-        return 'bg-red-100 text-red-700'
-      default:
-        return 'bg-amber-100 text-amber-700'
-    }
-  }
+  const ultima = (rede: Rede) => metricas.find((m) => m.rede === rede)
+  const conectadas = conexoes.filter((c) => c.status === 'conectada').length
 
   return (
     <div className="min-h-screen bg-cream">
       <Sidebar />
-      
-      <main className="ml-64 px-10 py-8 max-w-[1600px]">
-        <Header 
-          title="Configurações" 
-          subtitle="Conecte suas redes sociais e configure integrações"
-        />
 
-        {/* Aviso importante */}
-        <div className="bg-dark text-white rounded-2xl shadow-card p-6 mb-8">
-          <div className="flex items-start gap-4">
-            <Key size={24} className="text-gold flex-shrink-0 mt-1" />
-            <div>
-              <h3 className="font-display text-xl mb-2">Segurança das suas credenciais</h3>
-              <p className="text-warm-beige text-sm leading-relaxed">
-                Suas chaves de API são armazenadas de forma segura no Supabase e nunca são expostas publicamente. 
-                Configure primeiro o Supabase para que as outras integrações funcionem corretamente.
-              </p>
-            </div>
-          </div>
-        </div>
+      <main className="ml-64 px-10 py-8 max-w-[1100px]">
+        <Header title="Conexões" subtitle="As redes que a Central lê sozinha, todos os dias às 7h" />
 
-        {/* Lista de Integrações */}
-        <div className="space-y-6">
-          {integracoes.map(integracao => {
-            const Icon = integracao.icon
-            const todosPreenchidos = integracao.campos.every(c => c.valor.length > 0)
-            
+        <p className="text-[13px] text-muted mb-5">
+          {conectadas} de {ORDEM_REDES.length} conectadas · as senhas e tokens ficam guardados só no servidor, nunca nesta tela.
+        </p>
+
+        <div className="bg-white rounded-2xl border border-linha shadow-card divide-y divide-linha overflow-hidden">
+          {ORDEM_REDES.map((rede) => {
+            const c = conexoes.find((x) => x.rede === rede)
+            const m = ultima(rede)
+            const sobre = SOBRE[rede]
+            const status = c?.status ?? 'desconectada'
+            const expandida = aberta === rede
+            const disponivel = rede === 'instagram' || rede === 'substack'
+
             return (
-              <div 
-                key={integracao.id}
-                className="bg-white rounded-2xl border border-linha shadow-card"
-              >
-                {/* Header da integração */}
-                <div className="p-6 border-b border-warm-beige/30">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 ${integracao.cor} rounded-lg flex items-center justify-center`}>
-                        {typeof Icon === 'function' && Icon.toString().includes('span') ? (
-                          <Icon />
-                        ) : (
-                          <Icon size={24} className="text-white" />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-display text-xl">{integracao.nome}</h3>
-                        <p className="text-sm text-muted">{integracao.descricao}</p>
-                      </div>
-                    </div>
+              <section key={rede}>
+                <div className="flex items-center gap-4 px-5 py-4">
+                  <div className="w-11 h-11 rounded-[12px] bg-cream border border-linha flex items-center justify-center text-[15px] font-semibold text-charcoal tracking-tight">
+                    {MONOGRAMA[rede]}
+                  </div>
 
-                    <div className="flex items-center gap-4">
-                      <span className={`
-                        flex items-center gap-2 px-3 py-1.5 rounded text-xs font-medium
-                        ${getStatusColor(integracao.status)}
-                      `}>
-                        {getStatusIcon(integracao.status)}
-                        {getStatusText(integracao.status)}
-                      </span>
-                      
-                      <a 
-                        href={integracao.docUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-accent hover:text-gold flex items-center gap-1"
-                      >
-                        Documentação <ExternalLink size={12} />
-                      </a>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[15px] font-medium text-charcoal">{REDES[rede]}</span>
+                      {c?.conta && <span className="text-[13px] text-muted truncate">{rede === 'substack' ? c.conta : `@${c.conta}`}</span>}
+                    </div>
+                    <div className="text-[12px] text-muted mt-0.5">
+                      {status === 'conectada' && c?.ultima_sincronizacao && <>Atualizado {dataHoraBR(c.ultima_sincronizacao)}</>}
+                      {status === 'erro' && <span className="text-accent">{c?.ultimo_erro}</span>}
+                      {status === 'desconectada' && sobre.entrega}
                     </div>
                   </div>
+
+                  {m && (m.seguidores != null || m.publicacoes != null) && (
+                    <div className="text-right mr-2">
+                      <div className="text-[20px] font-semibold tracking-tight text-charcoal tabular-nums leading-none">
+                        {(m.seguidores ?? m.publicacoes)?.toLocaleString('pt-BR')}
+                      </div>
+                      <div className="text-[11px] text-muted mt-1">{m.seguidores != null ? 'seguidores' : 'edições'}</div>
+                    </div>
+                  )}
+
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-medium whitespace-nowrap
+                    ${status === 'conectada' ? 'bg-olive/[0.12] text-olive' : status === 'erro' ? 'bg-gold/20 text-charcoal' : 'bg-black/[0.05] text-muted'}`}>
+                    {status === 'conectada' ? 'Conectada' : status === 'erro' ? 'Com erro' : 'Não conectada'}
+                  </span>
+
+                  {disponivel && (
+                    <button
+                      onClick={() => sincronizar(rede)}
+                      disabled={rodando !== null}
+                      aria-label="Sincronizar agora"
+                      title="Sincronizar agora"
+                      className="w-8 h-8 rounded-full bg-black/[0.05] hover:bg-black/[0.09] flex items-center justify-center text-charcoal/70 transition-colors disabled:opacity-50"
+                    >
+                      {rodando === rede ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={14} />}
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setAberta(expandida ? null : rede)}
+                    aria-label="Detalhes"
+                    className="w-8 h-8 rounded-full hover:bg-black/[0.05] flex items-center justify-center text-muted transition-colors"
+                  >
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${expandida ? 'rotate-180' : ''}`} />
+                  </button>
                 </div>
 
-                {/* Campos */}
-                <div className="p-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    {integracao.campos.map(campo => (
-                      <div key={campo.id}>
-                        <label className="block text-sm font-medium text-charcoal mb-2">
-                          {campo.label}
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={campo.tipo === 'password' && !camposVisiveis[campo.id] ? 'password' : 'text'}
-                            placeholder={campo.placeholder}
-                            value={campo.valor}
-                            onChange={(e) => atualizarCampo(integracao.id, campo.id, e.target.value)}
-                            className="w-full pr-10"
-                          />
-                          {campo.tipo === 'password' && (
-                            <button
-                              type="button"
-                              onClick={() => toggleVisibilidade(campo.id)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-charcoal"
-                            >
-                              {camposVisiveis[campo.id] ? <EyeOff size={18} /> : <Eye size={18} />}
-                            </button>
-                          )}
-                        </div>
-                        {campo.ajuda && (
-                          <p className="text-xs text-muted mt-1">{campo.ajuda}</p>
-                        )}
-                      </div>
-                    ))}
+                {aviso?.rede === rede && (
+                  <div className={`mx-5 mb-4 -mt-1 rounded-xl px-4 py-2.5 text-[13px] flex items-center gap-2 ${aviso.ok ? 'bg-olive/[0.08] text-olive' : 'bg-gold/15 text-charcoal'}`}>
+                    {aviso.ok && <Check size={14} />} {aviso.texto}
                   </div>
+                )}
 
-                  {/* Botões de ação */}
-                  <div className="flex items-center gap-4 mt-6 pt-6 border-t border-warm-beige/30">
-                    <button
-                      onClick={() => salvarIntegracao(integracao.id)}
-                      disabled={!todosPreenchidos || salvando === integracao.id}
-                      className={`
-                        btn-primary flex items-center gap-2
-                        ${!todosPreenchidos ? 'opacity-50 cursor-not-allowed' : ''}
-                      `}
-                    >
-                      {salvando === integracao.id ? (
-                        <>
-                          <RefreshCw size={14} className="animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        <>
-                          <Save size={14} />
-                          Salvar
-                        </>
-                      )}
-                    </button>
+                {expandida && (
+                  <div className="px-5 pb-5 pl-[80px] space-y-3 animate-fadeIn">
+                    <p className="text-[13px] text-charcoal">{sobre.entrega}</p>
+                    {sobre.aviso && <p className="text-[13px] text-muted">{sobre.aviso}</p>}
 
-                    {integracao.status === 'conectado' && (
-                      <button
-                        onClick={() => testarConexao(integracao.id)}
-                        disabled={testando === integracao.id}
-                        className="btn-secondary flex items-center gap-2"
-                      >
-                        {testando === integracao.id ? (
-                          <>
-                            <RefreshCw size={14} className="animate-spin" />
-                            Testando...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw size={14} />
-                            Testar Conexão
-                          </>
-                        )}
-                      </button>
+                    {sobre.passos && status !== 'conectada' && (
+                      <ol className="space-y-1.5">
+                        {sobre.passos.map((p, i) => (
+                          <li key={p} className="flex gap-2.5 text-[13px] text-charcoal">
+                            <span className="w-5 h-5 shrink-0 rounded-full bg-black/[0.05] text-[11px] font-medium flex items-center justify-center tabular-nums">{i + 1}</span>
+                            {p}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+
+                    {rede === 'substack' && edicoes.length > 0 && (
+                      <div className="rounded-xl bg-cream/70 divide-y divide-linha">
+                        {edicoes.map((e) => (
+                          <a key={e.id} href={e.link} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-charcoal hover:text-accent transition-colors">
+                            <span className="truncate flex-1">{e.titulo}</span>
+                            {e.publicado_em && <span className="text-[12px] text-muted tabular-nums">{dataBR(e.publicado_em)}</span>}
+                            <ExternalLink size={12} className="text-muted" />
+                          </a>
+                        ))}
+                      </div>
                     )}
                   </div>
-                </div>
-              </div>
+                )}
+              </section>
             )
           })}
-        </div>
-
-        {/* Dica final */}
-        <div className="mt-8 p-6 bg-cream border border-gold/30">
-          <h3 className="font-display text-lg mb-2">💡 Próximos passos</h3>
-          <ol className="text-sm text-muted space-y-2 list-decimal list-inside">
-            <li>Configure primeiro o <strong>Supabase</strong> (banco de dados)</li>
-            <li>Depois conecte o <strong>Instagram</strong> (requer app no Meta Business)</li>
-            <li>Configure <strong>YouTube</strong> (requer projeto no Google Cloud)</li>
-            <li><strong>Pinterest</strong> e <strong>TikTok</strong> são opcionais</li>
-            <li>O <strong>Substack</strong> funciona apenas com a URL (sem autenticação)</li>
-          </ol>
         </div>
       </main>
     </div>

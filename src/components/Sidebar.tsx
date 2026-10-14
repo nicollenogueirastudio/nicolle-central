@@ -8,7 +8,7 @@ import {
   CalendarDays,
   BarChart3,
   Mail,
-  Settings,
+  Link2,
   LogOut,
 } from 'lucide-react'
 
@@ -122,8 +122,8 @@ export default function Sidebar() {
           className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] transition-colors
             ${ativo('/configuracoes') ? 'bg-black/[0.07] text-charcoal font-medium' : 'text-charcoal/80 hover:bg-black/[0.04]'}`}
         >
-          <Settings size={16} strokeWidth={1.8} className="text-muted" />
-          <span>Configurações</span>
+          <Link2 size={16} strokeWidth={1.8} className="text-muted" />
+          <span>Conexões</span>
         </Link>
         <form action="/auth/sair" method="post">
           <button
