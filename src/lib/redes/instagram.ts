@@ -68,7 +68,7 @@ export async function sincronizarInstagram(supabase: SupabaseClient): Promise<Re
   return { ok: true, resumo: `@${conta.username} · ${conta.followers_count ?? '?'} seguidores${resumoPosts}` }
 }
 
-/** Números do dia anterior da conta (alcance, visitas ao perfil, cliques no site). Se a Meta recusar, segue sem eles. */
+/** Números das últimas 24h da conta (alcance, visitas ao perfil, cliques no site). Se a Meta recusar, segue sem eles. */
 async function insightsDaConta(id: string, token: string): Promise<Record<string, number>> {
   const ontem = Math.floor(Date.now() / 1000) - 86400
   const hoje = Math.floor(Date.now() / 1000)

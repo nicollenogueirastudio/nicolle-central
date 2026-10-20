@@ -99,8 +99,8 @@ export default function PerformancePage() {
               nota={<span className="text-[12px] text-muted">{ganho == null ? `desde ${primeiro ? dataBR(primeiro.dia + 'T12:00:00Z') : 'hoje'}` : `${ganho >= 0 ? '+' : ''}${ganho} desde ${dataBR(primeiro.dia + 'T12:00:00Z').slice(0, 5)}`}</span>}
             />
             <Tile rotulo="Publicações no perfil" valor={ultimo?.publicacoes != null ? String(ultimo.publicacoes) : '—'} />
-            <Tile rotulo="Alcance da conta (ontem)" valor={compacto(detalhe.alcance)} nota={<span className="text-[12px] text-muted">contas diferentes que viram algo</span>} />
-            <Tile rotulo="Visitas ao perfil (ontem)" valor={compacto(detalhe.visitas_perfil)} nota={detalhe.cliques_site != null ? <span className="text-[12px] text-muted">{detalhe.cliques_site} cliques no site</span> : undefined} />
+            <Tile rotulo="Alcance da conta (24h)" valor={compacto(detalhe.alcance)} nota={<span className="text-[12px] text-muted">contas diferentes que viram algo</span>} />
+            <Tile rotulo="Visitas ao perfil (24h)" valor={compacto(detalhe.visitas_perfil)} nota={detalhe.cliques_site != null ? <span className="text-[12px] text-muted">{detalhe.cliques_site} cliques no site</span> : undefined} />
           </div>
 
           <div className={`${cartao} p-5`}>
