@@ -6,6 +6,7 @@ import {
   LayoutGrid,
   Target,
   CalendarDays,
+  CalendarRange,
   BarChart3,
   Mail,
   Link2,
@@ -41,6 +42,11 @@ const navigation = [
       { name: 'Lançamentos', href: '/marketing/lancamentos' },
       { name: 'Tarefas', href: '/marketing/tarefas' },
     ]
+  },
+  {
+    name: 'Calendário',
+    href: '/calendario',
+    icon: CalendarRange,
   },
   {
     name: 'Marca',

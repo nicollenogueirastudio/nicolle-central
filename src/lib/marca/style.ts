@@ -541,11 +541,11 @@ export const CAPITULOS: Capitulo[] = [
 ]
 
 /** Três imagens do dia, de capítulos diferentes (atmosfera, espaço e um terceiro que gira). */
-export function imagensDoDia(diaISO: string): { capitulo: Capitulo; imagem: string }[] {
+export function imagensDoDia(diaISO: string, removidas: Set<string> = new Set()): { capitulo: Capitulo; imagem: string }[] {
   const dias = Math.floor(Date.parse(diaISO + 'T12:00:00Z') / 86400000)
-  const retrato = (c: Capitulo) => c.imagens.filter((h) => !h.endsWith('L'))
+  const retrato = (c: Capitulo) => c.imagens.filter((h) => !h.endsWith('L') && !removidas.has(h))
   const escolhidos = [CAPITULOS[0], CAPITULOS[1], CAPITULOS[2 + (dias % (CAPITULOS.length - 2))]]
-  return escolhidos.map((c, i) => {
+  return escolhidos.filter((c) => retrato(c).length).map((c, i) => {
     const lista = retrato(c)
     return { capitulo: c, imagem: lista[(((dias * (7 + i * 4)) % lista.length) + lista.length) % lista.length] }
   })

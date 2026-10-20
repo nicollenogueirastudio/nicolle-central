@@ -5,6 +5,7 @@ import { Check, Plus, Trash2, ChevronDown } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import PalavraDoAno from '@/components/PalavraDoAno'
+import Sonhos from '@/components/planejamento/Sonhos'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { hojeISO } from '@/lib/datas'
 import {
@@ -184,6 +185,8 @@ export default function PlanejamentoPage() {
             </div>
           ))}
         </section>
+
+        <Sonhos supabase={supabase} />
 
         {/* Metas */}
         <div className="flex flex-wrap items-center gap-3 mb-4">

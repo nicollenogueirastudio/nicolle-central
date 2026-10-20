@@ -26,9 +26,10 @@ export async function GET(request: Request, { params }: { params: { caminho: str
   const base = path.join(RAIZ, ...partes)
   for (const [ext, tipo] of Object.entries(TIPOS)) {
     try {
-      const arquivo = await fs.readFile(base + ext)
+      let arquivo: Buffer | string = await fs.readFile(base + ext)
+      if (ext === '.html' && partes.join('/') === 'style/apresentacao') arquivo = await semRemovidas(supabase, arquivo.toString('utf8'))
       const baixar = new URL(request.url).searchParams.get('baixar')
-      return new NextResponse(arquivo, {
+      return new NextResponse(arquivo as unknown as BodyInit, {
         headers: {
           'Content-Type': tipo,
           'Cache-Control': 'private, max-age=86400',
@@ -40,4 +41,16 @@ export async function GET(request: Request, { params }: { params: { caminho: str
     }
   }
   return new NextResponse('Não encontrado', { status: 404 })
+}
+
+/** Tira do moodboard da apresentação as fotos que ela removeu na página. */
+async function semRemovidas(supabase: ReturnType<typeof criarClienteServidor>, html: string): Promise<string> {
+  const { data } = await supabase.from('style_removidas').select('pin')
+  const fora = new Set((data ?? []).map((r) => r.pin as string))
+  if (!fora.size) return html
+  return html.replace(/const DATA = (\{.*?\});/s, (_, json: string) => {
+    const dados = JSON.parse(json) as Record<string, string[]>
+    for (const k of Object.keys(dados)) dados[k] = dados[k].filter((h) => !fora.has(h))
+    return `const DATA = ${JSON.stringify(dados)};`
+  })
 }

@@ -1,21 +1,48 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Play, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Play, ChevronLeft, ChevronRight, X, Trash2, Undo2 } from 'lucide-react'
+import { criarClienteNavegador } from '@/lib/supabase/client'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { CAPITULOS, PILARES, PALETA, REFERENCIAS, RECUSA, PERGUNTA, INTRO, urlPin } from '@/lib/marca/style'
 
 const cartao = 'bg-white rounded-2xl border border-linha shadow-card'
-const TOTAL = CAPITULOS.reduce((s, c) => s + c.imagens.length, 0)
 
 export default function StylePage() {
   const [cap, setCap] = useState<string>('todos')
   const [aberta, setAberta] = useState<number | null>(null)
   const [quebradas, setQuebradas] = useState<Set<string>>(new Set())
+  const supabase = useMemo(() => criarClienteNavegador(), [])
+  const [removidas, setRemovidas] = useState<Set<string>>(new Set())
+  const [desfazer, setDesfazer] = useState<string | null>(null)
 
+  // As fotos que ela tirou do moodboard ficam guardadas (style_removidas) e somem de todo lugar.
+  useEffect(() => {
+    supabase.from('style_removidas').select('pin').then(({ data }) => setRemovidas(new Set((data ?? []).map((r) => r.pin as string))))
+  }, [supabase])
+
+  const visivel = (h: string) => !quebradas.has(h) && !removidas.has(h)
   const atual = CAPITULOS.find((c) => c.id === cap)
-  const imagens = (atual ? atual.imagens : CAPITULOS.flatMap((c) => c.imagens)).filter((h) => !quebradas.has(h))
+  const imagens = (atual ? atual.imagens : CAPITULOS.flatMap((c) => c.imagens)).filter(visivel)
+  const TOTAL = CAPITULOS.reduce((t, c) => t + c.imagens.filter(visivel).length, 0)
+
+  async function tirar(h: string) {
+    setRemovidas((r) => new Set(r).add(h))
+    setDesfazer(h)
+    if (aberta != null && aberta >= imagens.length - 1) setAberta(imagens.length > 1 ? imagens.length - 2 : null)
+    await supabase.from('style_removidas').upsert({ pin: h }, { onConflict: 'pin' })
+  }
+  async function voltar(h: string) {
+    setRemovidas((r) => { const n = new Set(r); n.delete(h); return n })
+    setDesfazer(null)
+    await supabase.from('style_removidas').delete().eq('pin', h)
+  }
+  useEffect(() => {
+    if (!desfazer) return
+    const t = setTimeout(() => setDesfazer(null), 7000)
+    return () => clearTimeout(t)
+  }, [desfazer])
 
   // Ampliada: setas navegam, Esc fecha.
   useEffect(() => {
@@ -88,7 +115,7 @@ export default function StylePage() {
 
         {/* Capítulos */}
         <div className="flex flex-wrap gap-1.5 mt-8 mb-4">
-          {[{ id: 'todos', nome: 'Todos', n: TOTAL }, ...CAPITULOS.map((c) => ({ id: c.id, nome: c.nome, n: c.imagens.length }))].map((c) => (
+          {[{ id: 'todos', nome: 'Todos', n: TOTAL }, ...CAPITULOS.map((c) => ({ id: c.id, nome: c.nome, n: c.imagens.filter(visivel).length }))].map((c) => (
             <button key={c.id} onClick={() => setCap(c.id)}
               className={`px-3 py-1.5 rounded-full text-[12.5px] transition-colors ${cap === c.id ? 'bg-charcoal text-white' : 'bg-white border border-linha text-charcoal/80 hover:bg-black/[0.03]'}`}>
               {c.nome} <span className={cap === c.id ? 'text-white/60' : 'text-muted'}>{c.n}</span>
@@ -105,11 +132,17 @@ export default function StylePage() {
 
         <div className="columns-2 md:columns-4 xl:columns-5 gap-3">
           {imagens.map((h, i) => (
-            <button key={`${h}-${i}`} onClick={() => setAberta(i)} className="mb-3 block w-full break-inside-avoid rounded-xl overflow-hidden bg-black/[0.04]">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={urlPin(h)} alt="" loading="lazy" className="w-full h-auto hover:opacity-90 transition-opacity"
-                onError={() => setQuebradas((s) => new Set(s).add(h))} />
-            </button>
+            <div key={`${h}-${i}`} className="group relative mb-3 break-inside-avoid rounded-xl overflow-hidden bg-black/[0.04] animate-surgir">
+              <button onClick={() => setAberta(i)} className="block w-full">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={urlPin(h)} alt="" loading="lazy" className="w-full h-auto group-hover:opacity-90 transition-opacity"
+                  onError={() => setQuebradas((s) => new Set(s).add(h))} />
+              </button>
+              <button onClick={() => tirar(h)} aria-label="Tirar do moodboard" title="Tirar do moodboard"
+                className="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/55 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/75">
+                <Trash2 size={14} />
+              </button>
+            </div>
           ))}
         </div>
       </main>
@@ -123,7 +156,18 @@ export default function StylePage() {
           <img src={urlPin(imagens[aberta])} alt="" className="max-h-[88vh] max-w-[80vw] rounded-lg" onClick={(e) => e.stopPropagation()} />
           <button className="absolute right-5 text-white/60 hover:text-white p-2" aria-label="Próxima"
             onClick={(e) => { e.stopPropagation(); setAberta(Math.min(imagens.length - 1, aberta + 1)) }}><ChevronRight size={28} /></button>
-          <div className="absolute bottom-5 text-[12px] text-white/50 tabular-nums">{aberta + 1} de {imagens.length}</div>
+          <div className="absolute bottom-5 flex items-center gap-4 text-[12px] text-white/50 tabular-nums">
+            {aberta + 1} de {imagens.length}
+            <button onClick={(e) => { e.stopPropagation(); tirar(imagens[aberta]) }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80">
+              <Trash2 size={12} /> Tirar do moodboard
+            </button>
+          </div>
+        </div>
+      )}
+      {desfazer && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[80] flex items-center gap-3 rounded-full bg-[#1D1D1F] text-white pl-5 pr-2 py-2 shadow-lg text-[13px] animate-surgir">
+          Foto tirada do moodboard
+          <button onClick={() => voltar(desfazer)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20"><Undo2 size={13} /> Desfazer</button>
         </div>
       )}
     </div>

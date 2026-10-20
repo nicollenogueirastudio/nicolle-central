@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import PalavraDoAno from '@/components/PalavraDoAno'
 import { versiculoDoDia } from '@/lib/versiculos'
 import { imagensDoDia, urlPin } from '@/lib/marca/style'
+import { estaProximo, emQuantosDias, type Evento } from '@/lib/eventos'
 import { temaDoDia, FREQUENCIA, type Frame } from '@/lib/stories/estrategia'
 import { valorDoDia, PRESTACAO, DIAS_DA_PRESTACAO, type Valor } from '@/lib/principios'
 import { criarClienteNavegador } from '@/lib/supabase/client'
@@ -54,6 +55,7 @@ export default function DashboardPage() {
   const [lancamento, setLancamento] = useState<Lancamento | null>(null)
   const [metas, setMetas] = useState<Meta[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [eventos, setEventos] = useState<Evento[]>([])
   const [storiesHoje, setStoriesHoje] = useState<{ frames: Frame[]; publicados: number }>({ frames: [], publicados: 0 })
   const tarefas = useTarefas(supabase, { abertas: true })
   const [saudacao, setSaudacao] = useState('Olá')
@@ -67,8 +69,8 @@ export default function DashboardPage() {
     setSaudacao(h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite')
     setVerso(versiculoDoDia(hojeISO()))
     setValor(valorDoDia(hojeISO()))
-    setMood(imagensDoDia(hojeISO()))
-  }, [])
+    supabase.from('style_removidas').select('pin').then(({ data }) => setMood(imagensDoDia(hojeISO(), new Set((data ?? []).map((r) => r.pin as string)))))
+  }, [supabase])
 
   useEffect(() => {
     const ate30 = instanteDeBR(somarDias(hoje, 1), '00:00')
@@ -86,7 +88,9 @@ export default function DashboardPage() {
       listarMetas(supabase),
       supabase.from('stories_roteiros').select('frames').eq('dia', hoje).maybeSingle(),
       supabase.from('stories_publicados').select('id', { count: 'exact', head: true }).gte('publicado_em', instanteDeBR(hoje, '00:00')),
-    ]).then(([p, atual, antes, m, c, e, l, mt, sr, sp]) => {
+      supabase.from('eventos').select('*'),
+    ]).then(([p, atual, antes, m, c, e, l, mt, sr, sp, ev]) => {
+      setEventos((ev.data ?? []) as Evento[])
       setStoriesHoje({ frames: ((sr.data?.frames ?? []) as Frame[]), publicados: sp.count ?? 0 })
       setPosts(p)
       setMedidos({ atual, antes })
@@ -123,6 +127,8 @@ export default function DashboardPage() {
     ...atrasados.filter((p) => !emAprovacao.includes(p) && !emAjuste.includes(p)).map((p) => ({ chave: 'a' + p.id, texto: p.titulo || 'Post sem título', nota: `passou da data (${dataBR(p.data_hora!).slice(0, 5)}) e não está postado`, href: '/marketing' })),
     ...(diasSemEdicao != null && diasSemEdicao > 7 ? [{ chave: 'casa', texto: 'Casa Nogs', nota: `${diasSemEdicao} dias sem edição: a promessa é semanal`, href: '/newsletter' }] : []),
     ...comErro.map((c) => ({ chave: 'c' + c.rede, texto: REDES[c.rede], nota: `conexão com erro: ${c.ultimo_erro ?? ''}`, href: '/configuracoes' })),
+    ...eventos.map((ev) => ({ ev, m: estaProximo(ev, hoje) })).filter((x) => x.m && (x.ev.vou || x.m.rotulo !== 'resultado')).sort((a, b) => a.m!.dias - b.m!.dias)
+      .map(({ ev, m }) => ({ chave: 'e' + ev.id, texto: ev.nome, nota: m!.acontecendo ? 'acontecendo agora' : `${m!.rotulo} ${diaCurto(m!.data)} · ${emQuantosDias(m!.dias)}${ev.confirmado ? '' : ' (data prevista)'}`, href: '/calendario' })),
   ]
 
   // Desempenho 30 dias
@@ -261,7 +267,7 @@ export default function DashboardPage() {
                 <p className="flex items-center gap-2 text-[13.5px] text-olive"><span className="w-5 h-5 rounded-full bg-olive text-white flex items-center justify-center"><Check size={12} strokeWidth={3} /></span> Nada pendente. Tudo no ritmo.</p>
               ) : (
                 <div className="divide-y divide-linha -mx-5">
-                  {pendencias.slice(0, 7).map((p) => (
+                  {pendencias.slice(0, 9).map((p) => (
                     <Link key={p.chave} href={p.href} className="flex items-center gap-3 px-5 py-2.5 hover:bg-black/[0.02]">
                       <AlertTriangle size={14} className="text-[#8C6B3F] shrink-0" />
                       <span className="text-[13.5px] text-charcoal truncate">{p.texto}</span>
