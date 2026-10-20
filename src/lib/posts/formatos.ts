@@ -29,18 +29,6 @@ export const FORMATOS: Formato[] = [
     filtro: 'Leitura crítica, nunca "dicas" ou "tendência": a referência entra pelo porquê, não pela lista.',
   },
   {
-    id: 'compilado', grupo: '02 · Inspiração', nome: 'Compilado de referências', tipo: 'carrossel', pilar: 'curadoria', categoria: 'curadoria',
-    paraQueServe: 'Repertório temático (piscinas de hotel, sofás, mesas, espelhos) que vira arquivo de quem salva. Constrói a fama de "quem tem o melhor olhar".',
-    comoFazer: ['Um tema por post', '4 a 6 imagens que conversam entre si', 'Créditos de cada referência'],
-    filtro: 'O critério precisa estar declarado: o que une as imagens. Sem moodboard reciclado.',
-  },
-  {
-    id: 'repost', grupo: '02 · Inspiração', nome: 'Repost', tipo: 'reels', pilar: 'curadoria', categoria: 'curadoria',
-    paraQueServe: 'Manter presença com algo belo feito por outros, quando não há peça própria pronta. É respiro de calendário, não pilar.',
-    comoFazer: ['Conteúdos interessantes, com alcance comprovado', 'Sempre dar a fonte'],
-    filtro: 'Usar com parcimônia: o manual prefere curadoria autoral a repost. Se não tiver leitura sua, prefira o respiro.',
-  },
-  {
     id: 'portfolio-carrossel', grupo: '03 · Portfólio', nome: 'Carrossel de projeto', tipo: 'carrossel', pilar: 'autoridade', categoria: 'projetos',
     paraQueServe: 'O projeto como prova de autoria: é o que a cliente olha antes de chamar. Vende sem parecer venda.',
     comoFazer: ['Carrossel com as imagens do projeto', 'Uma decisão de design explicada na legenda'],
