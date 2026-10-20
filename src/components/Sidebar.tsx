@@ -23,11 +23,6 @@ const navigation = [
     name: 'Planejamento',
     href: '/planejamento',
     icon: Target,
-    submenu: [
-      { name: 'Visão 3 Anos', href: '/planejamento/visao' },
-      { name: 'Metas', href: '/planejamento/metas' },
-      { name: 'Revisão', href: '/planejamento/revisao' },
-    ]
   },
   {
     name: 'Marketing',
@@ -35,6 +30,7 @@ const navigation = [
     icon: CalendarDays,
     submenu: [
       { name: 'Calendário de posts', href: '/marketing' },
+      { name: 'Lançamentos', href: '/marketing/lancamentos' },
     ]
   },
   {
