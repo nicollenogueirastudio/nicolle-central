@@ -26,7 +26,7 @@ export default function TermosPage() {
 
       <h2>Dados</h2>
       <p>
-        O tratamento dos dados está descrito na <a href="/privacidade" className="underline underline-offset-2">política de privacidade</a>.
+        O tratamento dos dados está descrito na <a href="/nicollenogueira/privacidade" className="underline underline-offset-2">política de privacidade</a>.
       </p>
 
       <h2>Contato</h2>
