@@ -1,4 +1,4 @@
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import { Download, BookOpen } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
@@ -12,8 +12,23 @@ import {
 } from '@/lib/marca/identidade'
 
 // As fontes oficiais da marca, só para as amostras desta página (a interface segue com a fonte do sistema).
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '700'], display: 'swap' })
-const jetbrains = JetBrains_Mono({ subsets: ['latin'], weight: ['300', '400', '700'], display: 'swap' })
+// Arquivos da própria pasta de identidade visual: o build não depende do Google Fonts.
+const inter = localFont({
+  src: [
+    { path: './fontes/Inter-Light.ttf', weight: '300' },
+    { path: './fontes/Inter-Regular.ttf', weight: '400' },
+    { path: './fontes/Inter-Bold.ttf', weight: '700' },
+  ],
+  display: 'swap',
+})
+const jetbrains = localFont({
+  src: [
+    { path: './fontes/JetBrainsMono-Light.ttf', weight: '300' },
+    { path: './fontes/JetBrainsMono-Regular.ttf', weight: '400' },
+    { path: './fontes/JetBrainsMono-Bold.ttf', weight: '700' },
+  ],
+  display: 'swap',
+})
 const fonte = { inter: inter.className, jetbrains: jetbrains.className }
 
 const SECOES = [
