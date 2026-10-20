@@ -19,6 +19,9 @@ import { listarLancamentos, type Lancamento } from '@/lib/lancamentos/dados'
 import { movimento } from '@/lib/lancamentos/estrategia'
 import { listarMetas, type Meta } from '@/lib/planejamento/dados'
 import { REDES, ORDEM_REDES, type Conexao, type Rede } from '@/lib/redes/tipos'
+import { LinhaTarefa, NovaTarefa } from '@/components/tarefas/ListaTarefas'
+import { useTarefas } from '@/components/tarefas/useTarefas'
+import { faixa } from '@/lib/tarefas/dados'
 
 const cartao = 'bg-white rounded-2xl border border-linha shadow-card'
 const iconeTipo = { feed: ImageIcon, carrossel: Layers, reels: Film, story: Circle }
@@ -48,6 +51,7 @@ export default function DashboardPage() {
   const [lancamento, setLancamento] = useState<Lancamento | null>(null)
   const [metas, setMetas] = useState<Meta[]>([])
   const [carregando, setCarregando] = useState(true)
+  const tarefas = useTarefas(supabase, { abertas: true })
   const [saudacao, setSaudacao] = useState('Olá')
   const [verso, setVerso] = useState<{ texto: string; referencia: string } | null>(null)
 
@@ -188,6 +192,32 @@ export default function DashboardPage() {
                 <span>{proxSemana.length ? `Semana que vem: ${proxSemana.filter((p) => apareceNaGrade(p.tipo)).length} no feed já planejados` : 'Nada planejado para a semana que vem ainda'}</span>
                 <Link href="/marketing" className="hover:text-charcoal flex items-center gap-1">Calendário <ArrowRight size={12} /></Link>
               </div>
+            </section>
+
+            {/* Tarefas */}
+            <section className={`${cartao} overflow-hidden`}>
+              <div className="px-5 pt-5">
+                <Titulo href="/marketing/tarefas" acao="Todas as tarefas">Tarefas</Titulo>
+              </div>
+              {(() => {
+                const atrasadas = tarefas.tarefas.filter((t) => faixa(t) === 'atrasada')
+                const proximas = tarefas.tarefas.filter((t) => ['hoje', 'semana'].includes(faixa(t)))
+                const semPrazo = tarefas.tarefas.filter((t) => faixa(t) === 'sem_prazo')
+                const depois = tarefas.tarefas.filter((t) => faixa(t) === 'depois').length
+                const grupos: [string, typeof atrasadas, boolean][] = [['Atrasadas', atrasadas, true], ['Hoje e próximos 7 dias', proximas, false], ['Sem prazo', semPrazo.slice(0, 4), false]]
+                return (
+                  <div className="-mt-2 pb-2">
+                    {grupos.map(([nome, lista, alerta]) => lista.length > 0 && (
+                      <div key={nome}>
+                        <div className={`px-4 pt-2 pb-0.5 text-[11.5px] font-medium ${alerta ? 'text-[#8C6B3F]' : 'text-muted'}`}>{nome} · {lista.length}</div>
+                        {lista.map((t) => <LinhaTarefa key={t.id} t={t} mostrarLancamento onSalvar={(d) => tarefas.salvar(t, d)} onApagar={() => tarefas.apagar(t)} />)}
+                      </div>
+                    ))}
+                    {atrasadas.length + proximas.length + semPrazo.length === 0 && <p className="px-5 py-2 text-[13px] text-muted">Nada para os próximos 7 dias.{depois ? ` ${depois} ${depois === 1 ? 'tarefa' : 'tarefas'} mais adiante.` : ''}</p>}
+                    <div className="border-t border-linha mt-1"><NovaTarefa onCriar={(titulo, prazo) => tarefas.criar(titulo, prazo)} placeholder="Anotar uma tarefa e Enter" /></div>
+                  </div>
+                )
+              })()}
             </section>
 
             {/* Precisa de você */}

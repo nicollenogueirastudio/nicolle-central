@@ -12,6 +12,9 @@ import {
 } from '@/lib/lancamentos/dados'
 import { STATUS } from '@/lib/posts/tipos'
 import { estiloStatus } from '@/components/posts/estilos'
+import ListaTarefas from '@/components/tarefas/ListaTarefas'
+import { useTarefas } from '@/components/tarefas/useTarefas'
+import { criarTarefasChave, TAREFAS_CHAVE } from '@/lib/tarefas/dados'
 
 const cartao = 'bg-white rounded-2xl border border-linha shadow-card'
 const campo = 'w-full rounded-[10px] border border-black/[0.10] bg-white px-3 py-1.5 text-[13.5px] text-charcoal outline-none placeholder:text-muted/60 focus:border-accent focus:ring-[3px] focus:ring-accent/15'
@@ -98,6 +101,13 @@ export default function Ficha({ supabase, l, outros, onMudou, onApagou }: {
   const [aberto, setAberto] = useState<number | null>(null)
   const [ocupado, setOcupado] = useState<number | 'recalc' | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
+  const tarefas = useTarefas(supabase, { lancamentoId: l.id })
+  const [verFeitas, setVerFeitas] = useState(false)
+  const faltamChave = TAREFAS_CHAVE.filter((c) => !tarefas.tarefas.some((t) => t.chave === c.chave)).length
+
+  async function adicionarChave() {
+    try { await criarTarefasChave(supabase, l.id, l.revelacao_em); await tarefas.recarregar() } catch (e) { setAviso((e as Error).message) }
+  }
 
   const feitos = l.movimentos.filter((m) => m.feito).length
   const diasAteRevelacao = l.revelacao_em ? Math.round((Date.parse(l.revelacao_em) - Date.parse(hojeISO())) / 86400000) : null
@@ -121,7 +131,7 @@ export default function Ficha({ supabase, l, outros, onMudou, onApagou }: {
   async function recalcular() {
     if (!confirm('Refazer as datas dos movimentos que ainda não foram feitos nem viraram post, a partir da revelação?')) return
     setOcupado('recalc')
-    try { await recalcularDatas(supabase, l); onMudou() } finally { setOcupado(null) }
+    try { await recalcularDatas(supabase, l); await tarefas.recarregar(); onMudou() } finally { setOcupado(null) }
   }
   async function apagar() {
     if (!confirm(`Apagar o lançamento "${l.projeto}"? Os posts já criados no calendário continuam lá.`)) return
@@ -175,6 +185,26 @@ export default function Ficha({ supabase, l, outros, onMudou, onApagou }: {
           </p>
         )}
         {aviso && <p className="mt-3 text-[12.5px] text-accent">{aviso}</p>}
+      </div>
+
+      {/* Tarefas do lançamento */}
+      <div className={`${cartao} overflow-hidden`}>
+        <div className="flex items-baseline gap-3 px-5 pt-4 pb-2">
+          <span className="text-[14px] font-medium text-charcoal">Tarefas do lançamento</span>
+          <span className="text-[12px] text-muted tabular-nums">{tarefas.tarefas.filter((t) => t.feita).length} de {tarefas.tarefas.length} feitas</span>
+          <div className="ml-auto flex items-center gap-2">
+            {faltamChave > 0 && (
+              <button onClick={adicionarChave} className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-medium text-charcoal bg-black/[0.05] hover:bg-black/[0.09]">
+                <Plus size={12} /> {faltamChave === TAREFAS_CHAVE.length ? 'Adicionar as tarefas-chave' : `Repor ${faltamChave} tarefas-chave`}
+              </button>
+            )}
+            <button onClick={() => setVerFeitas(!verFeitas)} className="px-3 py-1 rounded-full text-[12px] text-muted hover:text-charcoal hover:bg-black/[0.04]">{verFeitas ? 'Esconder feitas' : 'Mostrar feitas'}</button>
+          </div>
+        </div>
+        {tarefas.erro && <p className="px-5 text-[12px] text-accent">{tarefas.erro}</p>}
+        <div className="pb-2">
+          <ListaTarefas tarefas={tarefas.tarefas} mostrarFeitas={verFeitas} onSalvar={tarefas.salvar} onApagar={tarefas.apagar} onCriar={(titulo, prazo) => tarefas.criar(titulo, prazo)} />
+        </div>
       </div>
 
       <Arco l={l} />

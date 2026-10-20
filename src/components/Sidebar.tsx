@@ -31,6 +31,7 @@ const navigation = [
     submenu: [
       { name: 'Calendário de posts', href: '/marketing' },
       { name: 'Lançamentos', href: '/marketing/lancamentos' },
+      { name: 'Tarefas', href: '/marketing/tarefas' },
     ]
   },
   {

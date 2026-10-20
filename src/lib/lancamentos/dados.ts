@@ -5,6 +5,7 @@ import { registrarAtividade } from '@/lib/atividades'
 import { instanteDeBR, somarDias } from '@/lib/datas'
 import { criarPost } from '@/lib/posts/dados'
 import { MOVIMENTOS, movimento } from './estrategia'
+import { criarTarefasChave, TAREFAS_CHAVE } from '@/lib/tarefas/dados'
 
 export type StatusLancamento = 'planejando' | 'em_andamento' | 'concluido' | 'arquivado'
 export const STATUS_LANCAMENTO: Record<StatusLancamento, string> = {
@@ -66,6 +67,7 @@ export async function criarLancamento(supabase: SupabaseClient, dados: Partial<L
   }))
   const { error: e2 } = await supabase.from('lancamento_movimentos').insert(linhas)
   if (e2) throw e2
+  await criarTarefasChave(supabase, data.id, dados.revelacao_em ?? null)
   await registrarAtividade(supabase, 'criou', 'lancamento', data.id, { projeto: dados.projeto })
   return data.id
 }
@@ -92,6 +94,14 @@ export async function recalcularDatas(supabase: SupabaseClient, l: Lancamento) {
   for (const m of l.movimentos) {
     if (m.feito || m.post_id) continue
     await salvarMovimento(supabase, l.id, m.movimento, { data_prevista: dataSugerida(l.revelacao_em, m.movimento) })
+  }
+  // Tarefas-chave ainda abertas acompanham a nova data da revelação.
+  if (l.revelacao_em) {
+    const { data: tarefas } = await supabase.from('tarefas').select('id, chave').eq('lancamento_id', l.id).eq('feita', false).not('chave', 'is', null)
+    for (const t of tarefas ?? []) {
+      const modelo = TAREFAS_CHAVE.find((x) => x.chave === t.chave)
+      if (modelo) await supabase.from('tarefas').update({ prazo: somarDias(l.revelacao_em, modelo.dias) }).eq('id', t.id)
+    }
   }
   await registrarAtividade(supabase, 'editou', 'lancamento', l.id, { recalculou_datas: l.revelacao_em })
 }
