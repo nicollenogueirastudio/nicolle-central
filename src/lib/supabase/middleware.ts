@@ -4,7 +4,8 @@ type CookieParaGravar = { name: string; value: string; options: CookieOptions }
 import { NextResponse, type NextRequest } from 'next/server'
 
 // Páginas que abrem sem login. /api/cron se protege sozinha com o CRON_SECRET.
-const ROTAS_PUBLICAS = ['/login', '/auth/callback', '/api/cron']
+// /privacidade e /termos são exigidas pelas redes para aprovar os apps.
+const ROTAS_PUBLICAS = ['/login', '/auth/callback', '/api/cron', '/privacidade', '/termos']
 
 export async function atualizarSessao(request: NextRequest) {
   let response = NextResponse.next({ request })
