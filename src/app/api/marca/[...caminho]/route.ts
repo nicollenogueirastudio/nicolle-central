@@ -11,6 +11,7 @@ const RAIZ = path.join(process.cwd(), 'conteudo', 'marca')
 const TIPOS: Record<string, string> = {
   '.jpg': 'image/jpeg',
   '.png': 'image/png',
+  '.html': 'text/html; charset=utf-8',
   '.rar': 'application/vnd.rar',
 }
 

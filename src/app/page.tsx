@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import PalavraDoAno from '@/components/PalavraDoAno'
 import { versiculoDoDia } from '@/lib/versiculos'
+import { imagensDoDia, urlPin } from '@/lib/marca/style'
 import { valorDoDia, PRESTACAO, DIAS_DA_PRESTACAO, type Valor } from '@/lib/principios'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { hojeISO, instanteDeBR, inicioDaSemana, somarDias, partesBR, dataBR, diaCurto } from '@/lib/datas'
@@ -56,6 +57,7 @@ export default function DashboardPage() {
   const [saudacao, setSaudacao] = useState('Olá')
   const [verso, setVerso] = useState<{ texto: string; referencia: string } | null>(null)
   const [valor, setValor] = useState<Valor | null>(null)
+  const [mood, setMood] = useState<ReturnType<typeof imagensDoDia>>([])
 
   // Saudação pela hora de Brasília (calculada no navegador, para não divergir do HTML pré-gerado).
   useEffect(() => {
@@ -63,6 +65,7 @@ export default function DashboardPage() {
     setSaudacao(h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite')
     setVerso(versiculoDoDia(hojeISO()))
     setValor(valorDoDia(hojeISO()))
+    setMood(imagensDoDia(hojeISO()))
   }, [])
 
   useEffect(() => {
@@ -292,6 +295,21 @@ export default function DashboardPage() {
                     <div className="space-y-1">{PRESTACAO.map((q) => <p key={q} className="text-[12.5px] text-charcoal/85 leading-snug">{q}</p>)}</div>
                   </div>
                 )}
+              </section>
+            )}
+
+            {/* Style de hoje */}
+            {mood.length > 0 && (
+              <section className={`${cartao} p-5`}>
+                <Titulo href="/marca/style" acao="Moodboard">A energia de hoje</Titulo>
+                <div className="grid grid-cols-3 gap-2 -mt-1">
+                  {mood.map((m) => (
+                    <Link key={m.imagem} href="/marca/style" title={m.capitulo.nome} className="aspect-[4/5] rounded-lg overflow-hidden bg-black/[0.04]">
+                      <img src={urlPin(m.imagem)} alt="" className="w-full h-full object-cover" />
+                    </Link>
+                  ))}
+                </div>
+                <p className="mt-3 text-[12px] text-muted">Como você quer se sentir aqui? Matéria, tempo e intenção.</p>
               </section>
             )}
 

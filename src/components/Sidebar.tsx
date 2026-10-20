@@ -48,6 +48,7 @@ const navigation = [
     submenu: [
       { name: 'Identidade visual', href: '/marca' },
       { name: 'Manual da marca', href: '/marca/manual' },
+      { name: 'Nicolle Nogueira Style', href: '/marca/style' },
     ]
   },
   {
