@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Plus, Trash2, ChevronDown } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import PalavraDoAno from '@/components/PalavraDoAno'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { hojeISO } from '@/lib/datas'
 import {
@@ -138,9 +139,8 @@ export default function PlanejamentoPage() {
         {/* O ano */}
         <section className="grid grid-cols-[1.1fr_1.4fr] gap-5 mb-6">
           <div className="rounded-2xl bg-[#1D1D1F] text-white p-7 flex flex-col">
-            <div className="text-[12px] text-white/50">{ano}</div>
-            <h2 className="font-display text-[30px] tracking-tight leading-tight mt-0.5">{ano === 2026 ? 'Ano da Fundação' : `Plano de ${ano}`}</h2>
-            {ano === 2026 && <p className="text-[13.5px] text-white/70 leading-relaxed mt-2">Não é ano de explodir audiência: é ano de plantar base sólida para o Horizonte 1. A estratégia é lenta e selecionada por princípio.</p>}
+            <PalavraDoAno key={ano} supabase={supabase} ano={ano} editavel escuro />
+            {ano === 2026 && <p className="text-[13px] text-white/60 leading-relaxed mt-3">Não é ano de explodir audiência: é ano de plantar base sólida para o Horizonte 1. A estratégia é lenta e selecionada por princípio.</p>}
             <div className="mt-auto pt-6">
               <div className="flex items-baseline justify-between mb-2">
                 <span className="font-display text-[40px] tabular-nums leading-none">{Math.round(progresso * 100)}%</span>

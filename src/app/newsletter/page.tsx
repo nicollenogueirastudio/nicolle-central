@@ -5,6 +5,7 @@ import { ExternalLink, Check, Loader2 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { LinhaTempo } from '@/components/performance/Graficos'
+import Ideias from '@/components/newsletter/Ideias'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { dataBR, hojeISO, partesBR, inicioDaSemana, somarDias, diaCurto } from '@/lib/datas'
 import { retratosDaConta, type Retrato } from '@/lib/performance/dados'
@@ -184,6 +185,8 @@ export default function NewsletterPage() {
               )}
           </div>
         </section>
+
+        <Ideias supabase={supabase} />
 
         <section className={`${cartao} overflow-hidden`}>
           <div className="px-5 pt-5 pb-3 flex items-baseline justify-between">

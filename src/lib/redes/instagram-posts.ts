@@ -3,7 +3,7 @@
 // Trabalha em lotes para caber no tempo de uma função da Vercel; cada chamada continua de onde a anterior parou.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Tipo } from '@/lib/posts/tipos'
+import { categoriaDaLegenda, type Tipo } from '@/lib/posts/tipos'
 
 const API = 'https://graph.facebook.com/v21.0'
 const BUCKET = 'posts-midia'
@@ -73,6 +73,7 @@ async function gravarPosts(supabase: SupabaseClient, midias: MidiaIG[]): Promise
     const { legenda, hashtags } = separarHashtags(m.caption)
     return {
       tipo: tipoDoInstagram(m),
+      categoria: categoriaDaLegenda(m.caption),
       titulo: tituloDaLegenda(m.caption),
       legenda,
       hashtags,

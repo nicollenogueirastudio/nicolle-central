@@ -2,7 +2,7 @@
 
 import { Film, Layers, Image as ImageIcon, Circle } from 'lucide-react'
 import { partesBR } from '@/lib/datas'
-import { STATUS, type Post } from '@/lib/posts/tipos'
+import { CATEGORIAS, STATUS, type Post } from '@/lib/posts/tipos'
 import { corPilar, estiloStatus } from './estilos'
 
 const iconeTipo = { feed: ImageIcon, carrossel: Layers, reels: Film, story: Circle }
@@ -56,6 +56,7 @@ export default function CartaoPost({ post, onAbrir, compacto }: Props) {
         <div className="flex items-center gap-1.5 mt-0.5 text-[11px] text-muted">
           {post.pilar && <span className={`w-1.5 h-1.5 rounded-full ${corPilar[post.pilar]}`} />}
           <Icone size={11} />
+          {post.categoria && <span>{CATEGORIAS[post.categoria]}</span>}
           {hora && <span className="tabular-nums">{hora}</span>}
           <span className={`ml-auto px-2 py-px rounded-full text-[10px] font-medium ${estiloStatus[post.status]}`}>
             {STATUS[post.status]}

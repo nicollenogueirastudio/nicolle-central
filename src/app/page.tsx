@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { ArrowRight, AlertTriangle, Check, Film, Layers, Image as ImageIcon, Circle } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import PalavraDoAno from '@/components/PalavraDoAno'
+import { versiculoDoDia } from '@/lib/versiculos'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { hojeISO, instanteDeBR, inicioDaSemana, somarDias, partesBR, dataBR, diaCurto } from '@/lib/datas'
 import { listarPosts } from '@/lib/posts/dados'
@@ -47,11 +49,13 @@ export default function DashboardPage() {
   const [metas, setMetas] = useState<Meta[]>([])
   const [carregando, setCarregando] = useState(true)
   const [saudacao, setSaudacao] = useState('Olá')
+  const [verso, setVerso] = useState<{ texto: string; referencia: string } | null>(null)
 
   // Saudação pela hora de Brasília (calculada no navegador, para não divergir do HTML pré-gerado).
   useEffect(() => {
     const h = Number(partesBR(new Date()).hora.slice(0, 2))
     setSaudacao(h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite')
+    setVerso(versiculoDoDia(hojeISO()))
   }, [])
 
   useEffect(() => {
@@ -132,7 +136,14 @@ export default function DashboardPage() {
       <Sidebar />
 
       <main className={`ml-64 px-10 py-8 max-w-[1400px] transition-opacity ${carregando ? 'opacity-60' : ''}`}>
-        <Header title={`${saudacao}, Nicolle`} subtitle="O que sai, o que espera por você e como a marca está indo" />
+        <Header
+          title={`${saudacao}, Nicolle`}
+          subtitle={
+            <p className="text-[15px] text-charcoal/70 leading-relaxed max-w-[760px] min-h-[24px]">
+              {verso && <>“{verso.texto}”<span className="text-[13px] text-muted whitespace-nowrap"> · {verso.referencia} (NVI)</span></>}
+            </p>
+          }
+        />
 
         <div className="grid grid-cols-[1fr_360px] gap-5 items-start">
           <div className="space-y-5 min-w-0">
@@ -230,6 +241,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-5">
+            {/* Palavra do ano */}
+            <section className="rounded-2xl bg-[#1D1D1F] p-5">
+              <PalavraDoAno supabase={supabase} ano={Number(hoje.slice(0, 4))} escuro />
+            </section>
+
             {/* Público */}
             <section className={`${cartao} p-5`}>
               <Titulo href="/performance" acao="Detalhes">Público</Titulo>

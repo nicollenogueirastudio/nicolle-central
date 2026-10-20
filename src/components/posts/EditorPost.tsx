@@ -6,7 +6,7 @@ import { criarClienteNavegador } from '@/lib/supabase/client'
 import { instanteDeBR, partesBR, dataHoraBR } from '@/lib/datas'
 import { oQueFaltaParaAgendar, podeMudarPara, contarHashtags, legendaFinal } from '@/lib/posts/regras'
 import { criarPost, salvarPost, arquivarPost, restaurarPost, enviarMidias, reordenarMidias, removerMidia } from '@/lib/posts/dados'
-import { PILARES, STATUS, STATUS_MANUAIS, TIPOS, type Midia, type Pilar, type Post, type PostEditavel, type Status, type Tipo } from '@/lib/posts/tipos'
+import { PILARES, CATEGORIAS, STATUS, STATUS_MANUAIS, TIPOS, categoriaDaLegenda, type Categoria, type Midia, type Pilar, type Post, type PostEditavel, type Status, type Tipo } from '@/lib/posts/tipos'
 import { QUADROS, FASES, TERRITORIOS, quadroPorId, lerVoz, type Fase, type Territorio } from '@/lib/posts/estrategia'
 import PreviaInstagram from './PreviaInstagram'
 import { corPilar, estiloStatus } from './estilos'
@@ -23,6 +23,7 @@ interface Props {
 type Form = {
   tipo: Tipo
   pilar: Pilar | ''
+  categoria: Categoria | ''
   titulo: string
   legenda: string
   hashtags: string
@@ -44,6 +45,7 @@ function formDe(post: Post | null, dataInicial?: string | null): Form {
   return {
     tipo: post?.tipo ?? 'feed',
     pilar: post?.pilar ?? '',
+    categoria: post?.categoria ?? '',
     titulo: post?.titulo ?? '',
     legenda: post?.legenda ?? '',
     hashtags: post?.hashtags ?? '',
@@ -65,6 +67,7 @@ function paraBanco(f: Form): PostEditavel {
   return {
     tipo: f.tipo,
     pilar: f.pilar || null,
+    categoria: f.categoria || null,
     titulo: f.titulo.trim() || null,
     legenda: f.legenda || null,
     hashtags: f.hashtags.trim() || null,
@@ -266,6 +269,28 @@ export default function EditorPost({ post, dataInicial, onFechar, onMudou }: Pro
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div>
+                <span className={rotulo}>Categoria</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {(Object.keys(CATEGORIAS) as Categoria[]).map((k) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => set('categoria', form.categoria === k ? '' : k)}
+                      className={`px-3 py-1 rounded-full text-[12.5px] border transition-all
+                        ${form.categoria === k ? 'border-charcoal bg-charcoal text-white' : 'border-black/[0.10] bg-white text-charcoal hover:border-black/25'}`}
+                    >
+                      {CATEGORIAS[k]}
+                    </button>
+                  ))}
+                </div>
+                {!form.categoria && categoriaDaLegenda(form.legenda) && (
+                  <button type="button" onClick={() => set('categoria', categoriaDaLegenda(form.legenda)!)} className="text-[12px] text-accent mt-1.5">
+                    A legenda começa com “{CATEGORIAS[categoriaDaLegenda(form.legenda)!]} /”. Usar essa categoria?
+                  </button>
+                )}
               </div>
 
               <label className="block">

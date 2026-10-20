@@ -16,6 +16,24 @@ export const PILARES = {
 } as const
 export type Pilar = keyof typeof PILARES
 
+// Categoria interna (a "categoria + barra" que abre a legenda: "Projetos /", "Curadoria /"…).
+export const CATEGORIAS = {
+  projetos: 'Projetos',
+  press: 'Press',
+  premios: 'Prêmios',
+  curadoria: 'Curadoria',
+  editorial: 'Editorial',
+} as const
+export type Categoria = keyof typeof CATEGORIAS
+
+/** Reconhece a categoria pelo começo da legenda ("Projetos / …"). */
+export function categoriaDaLegenda(legenda: string | null | undefined): Categoria | null {
+  const m = legenda?.trim().match(/^(projetos?|press|pr[êe]mios?|curadoria|editorial)\s*\//i)
+  if (!m) return null
+  const k = m[1].toLowerCase()
+  return k.startsWith('projeto') ? 'projetos' : k.startsWith('pr') && k !== 'press' ? 'premios' : (k as Categoria)
+}
+
 export const STATUS = {
   ideia: 'Ideia',
   rascunho: 'Em criação',
@@ -46,6 +64,7 @@ export type Post = {
   id: string
   tipo: Tipo
   pilar: Pilar | null
+  categoria: Categoria | null
   titulo: string | null
   legenda: string | null
   hashtags: string | null
@@ -70,5 +89,5 @@ export type Post = {
 }
 
 export type PostEditavel = Pick<Post,
-  | 'tipo' | 'pilar' | 'titulo' | 'legenda' | 'hashtags' | 'primeiro_comentario' | 'data_hora' | 'status'
+  | 'tipo' | 'pilar' | 'categoria' | 'titulo' | 'legenda' | 'hashtags' | 'primeiro_comentario' | 'data_hora' | 'status'
   | 'quadro' | 'fase' | 'territorio' | 'briefing' | 'fonte' | 'nota_aprovacao' | 'responsavel'>

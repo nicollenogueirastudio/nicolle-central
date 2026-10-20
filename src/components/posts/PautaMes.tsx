@@ -6,7 +6,7 @@ import { partesBR, diaCurto, inicioDaSemana } from '@/lib/datas'
 import { quadroPorId, RITMO_SEMANA } from '@/lib/posts/estrategia'
 import { montarPacote, planilhaCSV } from '@/lib/posts/pacote'
 import { apareceNaGrade } from '@/lib/posts/regras'
-import { PILARES, STATUS, STATUS_MANUAIS, TIPOS, type Post, type Status } from '@/lib/posts/tipos'
+import { CATEGORIAS, PILARES, STATUS, STATUS_MANUAIS, TIPOS, type Post, type Status } from '@/lib/posts/tipos'
 import { corPilar, estiloStatus } from './estilos'
 
 const iconeTipo = { feed: ImageIcon, carrossel: Layers, reels: Film, story: Circle }
@@ -163,7 +163,7 @@ export default function PautaMes({ posts, nomeMes, onAbrir, onMudarStatus }: Pro
                     <td className="py-2.5 pr-4">
                       <div className="text-charcoal font-medium truncate max-w-[420px]">{p.titulo || p.legenda?.slice(0, 50) || 'Sem título'}</div>
                       <div className="text-[11px] text-muted flex items-center gap-1.5 mt-0.5">
-                        <Icone size={11} /> {TIPOS[p.tipo]}{q && <> · {q.nome}</>}
+                        <Icone size={11} /> {TIPOS[p.tipo]}{p.categoria && <> · {CATEGORIAS[p.categoria]}</>}{q && <> · {q.nome}</>}
                         {p.nota_aprovacao && (p.status === 'ajuste' || p.status === 'aprovacao') && (
                           <span className="text-[#8C6B3F] truncate max-w-[260px]">· {p.nota_aprovacao}</span>
                         )}

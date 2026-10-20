@@ -5,7 +5,7 @@ import JSZip from 'jszip'
 import { partesBR } from '@/lib/datas'
 import { legendaFinal } from './regras'
 import { quadroPorId, FASES, TERRITORIOS } from './estrategia'
-import { PILARES, STATUS, TIPOS, type Post } from './tipos'
+import { CATEGORIAS, PILARES, STATUS, TIPOS, type Post } from './tipos'
 
 const limparNome = (t: string) => t.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60)
 
@@ -18,11 +18,11 @@ export function nomePasta(post: Post, i: number) {
 
 /** Planilha (CSV que abre no Excel e no Google Sheets) com uma linha por post, na ordem do mês. */
 export function planilhaCSV(posts: Post[]): string {
-  const cabecalho = ['Nº', 'Data', 'Hora', 'Formato', 'Pilar', 'Quadro', 'Fase', 'Território', 'Título', 'Legenda', 'Hashtags', 'Primeiro comentário', 'Briefing', 'Fonte e créditos', 'Responsável', 'Status', 'Comentário da aprovação', 'Arquivos', 'Pasta']
+  const cabecalho = ['Nº', 'Data', 'Hora', 'Formato', 'Categoria', 'Pilar', 'Quadro', 'Fase', 'Território', 'Título', 'Legenda', 'Hashtags', 'Primeiro comentário', 'Briefing', 'Fonte e créditos', 'Responsável', 'Status', 'Comentário da aprovação', 'Arquivos', 'Pasta']
   const linhas = posts.map((p, i) => {
     const partes = p.data_hora ? partesBR(p.data_hora) : null
     return [
-      String(i + 1), partes?.data ?? '', partes?.hora ?? '', TIPOS[p.tipo], p.pilar ? PILARES[p.pilar] : '',
+      String(i + 1), partes?.data ?? '', partes?.hora ?? '', TIPOS[p.tipo], p.categoria ? CATEGORIAS[p.categoria] : '', p.pilar ? PILARES[p.pilar] : '',
       quadroPorId(p.quadro)?.nome ?? '', p.fase ? FASES[p.fase].nome : '', p.territorio ? TERRITORIOS[p.territorio] : '',
       p.titulo ?? '', p.legenda ?? '', p.hashtags ?? '', p.primeiro_comentario ?? '', p.briefing ?? '', p.fonte ?? '',
       p.responsavel ?? '', STATUS[p.status], p.nota_aprovacao ?? '', String(p.midias.length), nomePasta(p, i),

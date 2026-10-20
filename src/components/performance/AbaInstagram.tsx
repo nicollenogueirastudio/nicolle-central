@@ -7,7 +7,7 @@ import { ExternalLink, Film, Layers, Image as ImageIcon, Circle } from 'lucide-r
 import { LinhaTempo, BarrasH, ColunasMes } from './Graficos'
 import { cartao, Tile, Variacao } from './ui'
 import { dataBR, partesBR } from '@/lib/datas'
-import { PILARES, TIPOS, type Pilar, type Tipo } from '@/lib/posts/tipos'
+import { CATEGORIAS, PILARES, TIPOS, type Categoria, type Pilar, type Tipo } from '@/lib/posts/tipos'
 import { quadroPorId } from '@/lib/posts/estrategia'
 import { postsMedidos, resumoDoGrupo, agrupar, forca, compacto, pct, media, type Retrato, type PostMedido } from '@/lib/performance/dados'
 import { intervalo, moverPeriodo, mesesDoPeriodo, rotulo, nomeAnterior, type Periodo } from '@/lib/performance/periodos'
@@ -40,6 +40,7 @@ export default function AbaInstagram({ supabase, periodo, retratos }: { supabase
   const resumoAntes = resumoDoGrupo(anteriores)
   const temAlcance = posts.some((p) => p.alcance != null)
   const porPilar = agrupar(posts, (p) => (p.pilar ?? 'sem') as Pilar | 'sem').sort((a, b) => (b.alcanceMedio ?? 0) - (a.alcanceMedio ?? 0))
+  const porCategoria = agrupar(posts, (p) => (p.categoria ?? 'sem') as Categoria | 'sem').sort((a, b) => (b.alcanceMedio ?? 0) - (a.alcanceMedio ?? 0))
   const porTipo = agrupar(posts, (p) => p.tipo as Tipo).sort((a, b) => (b.alcanceMedio ?? 0) - (a.alcanceMedio ?? 0))
   const semPilar = posts.filter((p) => !p.pilar).length
   const top = [...posts].sort((a, b) => forca(b) - forca(a)).slice(0, 5)
@@ -103,7 +104,7 @@ export default function AbaInstagram({ supabase, periodo, retratos }: { supabase
               </section>
             )}
 
-            <section className="grid grid-cols-2 gap-5 mb-5">
+            <section className="grid grid-cols-3 gap-5 mb-5">
               <div className={`${cartao} p-5`}>
                 <div className="text-[14px] font-medium text-charcoal">Alcance médio por pilar</div>
                 <p className="text-[12px] text-muted mb-4">Passe o mouse para ver posts e salvamento.</p>
@@ -120,6 +121,18 @@ export default function AbaInstagram({ supabase, periodo, retratos }: { supabase
                     {semPilar} {semPilar === 1 ? 'post sem pilar' : 'posts sem pilar'}. Os importados do Instagram chegam sem pilar: abra cada um no <Link href="/marketing" className="text-charcoal underline underline-offset-2">calendário</Link> e marque.
                   </p>
                 )}
+              </div>
+              <div className={`${cartao} p-5`}>
+                <div className="text-[14px] font-medium text-charcoal">Alcance médio por categoria</div>
+                <p className="text-[12px] text-muted mb-4">Projetos, Press, Prêmios, Curadoria, Editorial.</p>
+                <BarrasH
+                  formatar={temAlcance ? compacto : () => 'sem alcance'}
+                  linhas={porCategoria.map((g) => ({
+                    nome: g.chave === 'sem' ? 'Sem categoria' : CATEGORIAS[g.chave as Categoria],
+                    valor: g.alcanceMedio,
+                    detalhe: `${g.posts} ${g.posts === 1 ? 'post' : 'posts'} · salvamento ${pct(g.salvamento)}`,
+                  }))}
+                />
               </div>
               <div className={`${cartao} p-5`}>
                 <div className="text-[14px] font-medium text-charcoal">Alcance médio por formato</div>

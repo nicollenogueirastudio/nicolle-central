@@ -61,16 +61,11 @@ export default function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 z-50 flex flex-col border-r border-linha bg-[#F0EFEC]/80 backdrop-blur-2xl backdrop-saturate-150">
       {/* Marca */}
-      <div className="px-5 pt-7 pb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-[10px] bg-dark text-white flex items-center justify-center text-[15px] font-semibold tracking-tight shadow-controle">
-            N
-          </div>
-          <div className="leading-tight">
-            <div className="text-[13px] font-semibold text-charcoal tracking-tight">Central</div>
-            <div className="text-[11px] text-muted">Nicolle Nogueira Studio</div>
-          </div>
-        </div>
+      <div className="px-6 pt-8 pb-7">
+        <Link href="/" aria-label="Nicolle Nogueira Studio · início">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-nn.png" alt="Nicolle Nogueira Studio" className="w-[150px] h-auto" />
+        </Link>
       </div>
 
       {/* Navegação */}

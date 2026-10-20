@@ -2,7 +2,7 @@
 // o que a Meta ou o Substack não entregam aparece vazio, não como exemplo.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Pilar, Tipo } from '@/lib/posts/tipos'
+import type { Categoria, Pilar, Tipo } from '@/lib/posts/tipos'
 
 export type Retrato = { dia: string; seguidores: number | null; publicacoes: number | null; detalhe: Record<string, number | string> | null; origem?: 'api' | 'manual' }
 
@@ -10,6 +10,7 @@ export type PostMedido = {
   id: string
   tipo: Tipo
   pilar: Pilar | null
+  categoria: Categoria | null
   quadro: string | null
   titulo: string | null
   legenda: string | null
@@ -38,7 +39,7 @@ export async function retratosDaConta(supabase: SupabaseClient, rede: string): P
 export async function postsMedidos(supabase: SupabaseClient, de: string, ate: string): Promise<PostMedido[]> {
   const { data: posts, error } = await supabase
     .from('posts')
-    .select('id, tipo, pilar, quadro, titulo, legenda, data_hora, permalink, midias:posts_midia(caminho, ordem)')
+    .select('id, tipo, pilar, categoria, quadro, titulo, legenda, data_hora, permalink, midias:posts_midia(caminho, ordem)')
     .eq('status', 'postado')
     .is('arquivado_em', null)
     .gte('data_hora', de)
@@ -76,7 +77,7 @@ export async function postsMedidos(supabase: SupabaseClient, de: string, ate: st
     const capa = (p.midias as { caminho: string; ordem: number }[]).sort((a, b) => a.ordem - b.ordem)[0]?.caminho
     const m = metricas[p.id] ?? {}
     return {
-      id: p.id, tipo: p.tipo, pilar: p.pilar, quadro: p.quadro, titulo: p.titulo, legenda: p.legenda,
+      id: p.id, tipo: p.tipo, pilar: p.pilar, categoria: p.categoria, quadro: p.quadro, titulo: p.titulo, legenda: p.legenda,
       data_hora: p.data_hora, permalink: p.permalink, capa: capa ? links.get(capa) : undefined,
       alcance: m.alcance ?? null, curtidas: m.curtidas ?? null, comentarios: m.comentarios ?? null,
       salvos: m.salvos ?? null, compartilhamentos: m.compartilhamentos ?? null, visualizacoes: m.visualizacoes ?? null,
