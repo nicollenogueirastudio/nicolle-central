@@ -5,6 +5,7 @@ import { sincronizarRede } from '@/lib/redes/sincronizar'
 import { ORDEM_REDES, type Rede } from '@/lib/redes/tipos'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 // Botão "Sincronizar agora": roda com a sessão de quem está logado (RLS vale).
 export async function POST(request: Request) {
