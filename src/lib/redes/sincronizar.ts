@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { sincronizarInstagram } from './instagram'
 import { sincronizarSubstack } from './substack'
+import { sincronizarPinterest, sincronizarTikTok, sincronizarYouTube } from './outras'
 import type { Conexao, Rede, ResultadoSincronizacao } from './tipos'
 
 /** Sincroniza uma rede e grava o resultado (status, horário, erro) em `conexoes`. */
@@ -12,7 +13,10 @@ export async function sincronizarRede(supabase: SupabaseClient, rede: Rede): Pro
   try {
     if (rede === 'substack') resultado = await sincronizarSubstack(supabase, conexao.conta ?? 'casanogs.substack.com')
     else if (rede === 'instagram') resultado = await sincronizarInstagram(supabase)
-    else resultado = { ok: false, motivo: 'Conexão ainda não disponível', semConfiguracao: true }
+    else if (rede === 'pinterest') resultado = await sincronizarPinterest()
+    else if (rede === 'tiktok') resultado = await sincronizarTikTok()
+    else if (rede === 'youtube') resultado = await sincronizarYouTube(supabase, conexao.conta)
+    else resultado = { ok: false, motivo: 'O LinkedIn não libera números de perfil pessoal: anote à mão', semConfiguracao: true }
   } catch (e) {
     resultado = { ok: false, motivo: (e as Error).message }
   }

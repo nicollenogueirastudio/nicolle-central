@@ -98,3 +98,27 @@ export function BarrasH({ linhas, formatar }: {
     </div>
   )
 }
+
+/** Colunas de uma medida só por mês (ex.: alcance médio), com o valor no topo e a nota embaixo. */
+export function ColunasMes({ colunas, formatar }: {
+  colunas: { rotulo: string; valor: number | null; nota?: string }[]
+  formatar: (n: number | null) => string
+}) {
+  const max = Math.max(1, ...colunas.map((c) => c.valor ?? 0))
+  return (
+    <div className="flex items-end gap-2 h-[190px] pt-5">
+      {colunas.map((c) => (
+        <div key={c.rotulo} className="flex-1 min-w-0 h-full flex flex-col items-center justify-end group" title={c.nota}>
+          <span className="text-[11px] text-charcoal tabular-nums mb-1 whitespace-nowrap">{c.valor == null ? '' : formatar(c.valor)}</span>
+          <div
+            className="w-full max-w-[24px] rounded-t-[4px] transition-all duration-500 group-hover:opacity-80"
+            style={{ height: `${((c.valor ?? 0) / max) * 130}px`, minHeight: c.valor ? 3 : 0, background: COR }}
+          />
+          <div className="h-px w-full bg-black/10" />
+          <span className="text-[11px] text-muted mt-1.5 first-letter:uppercase">{c.rotulo}</span>
+          {c.nota && <span className="text-[10px] text-muted/80 whitespace-nowrap">{c.nota}</span>}
+        </div>
+      ))}
+    </div>
+  )
+}

@@ -4,7 +4,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Pilar, Tipo } from '@/lib/posts/tipos'
 
-export type Retrato = { dia: string; seguidores: number | null; publicacoes: number | null; detalhe: Record<string, number | string> | null }
+export type Retrato = { dia: string; seguidores: number | null; publicacoes: number | null; detalhe: Record<string, number | string> | null; origem?: 'api' | 'manual' }
 
 export type PostMedido = {
   id: string
@@ -24,10 +24,10 @@ export type PostMedido = {
   visualizacoes: number | null
 }
 
-export async function retratosDaConta(supabase: SupabaseClient, rede: 'instagram' | 'substack'): Promise<Retrato[]> {
+export async function retratosDaConta(supabase: SupabaseClient, rede: string): Promise<Retrato[]> {
   const { data, error } = await supabase
     .from('metricas_conta')
-    .select('dia, seguidores, publicacoes, detalhe')
+    .select('rede, dia, seguidores, publicacoes, detalhe, origem')
     .eq('rede', rede)
     .order('dia', { ascending: true })
   if (error) throw error

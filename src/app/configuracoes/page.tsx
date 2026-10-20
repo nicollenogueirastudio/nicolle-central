@@ -1,18 +1,28 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { RefreshCw, Check, ChevronDown, ExternalLink, Loader2 } from 'lucide-react'
+import { RefreshCw, Check, ChevronDown, ExternalLink, Loader2, LogIn } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { criarClienteNavegador } from '@/lib/supabase/client'
-import { dataBR, dataHoraBR } from '@/lib/datas'
-import { ORDEM_REDES, REDES, type Conexao, type Rede } from '@/lib/redes/tipos'
+import { dataBR, dataHoraBR, hojeISO } from '@/lib/datas'
+import { ORDEM_REDES, REDES, REDES_OAUTH, type Conexao, type Rede } from '@/lib/redes/tipos'
 
-type Metrica = { rede: Rede; dia: string; seguidores: number | null; publicacoes: number | null }
+type Metrica = { rede: Rede; dia: string; seguidores: number | null; publicacoes: number | null; origem?: 'api' | 'manual' }
 type Edicao = { id: string; titulo: string; link: string; publicado_em: string | null }
 
 // Monogramas neutros no lugar das cores das marcas (paleta interna sem vermelho/rosa).
-const MONOGRAMA: Record<Rede, string> = { instagram: 'Ig', substack: 'S', pinterest: 'P', tiktok: 'Tt', linkedin: 'in' }
+const MONOGRAMA: Record<Rede, string> = { instagram: 'Ig', substack: 'S', pinterest: 'P', tiktok: 'Tt', youtube: 'Yt', linkedin: 'in' }
+
+// Redes com leitura automática (as outras só aceitam números anotados à mão).
+const AUTOMATICAS: Rede[] = ['instagram', 'substack', 'pinterest', 'tiktok', 'youtube']
+
+const ERROS: Record<string, string> = {
+  'sem-app': 'O app desta rede ainda não foi configurado na Vercel.',
+  state: 'O login expirou ou veio de outra aba. Tente conectar de novo.',
+  token: 'A rede recusou a troca do código pelo acesso.',
+  access_denied: 'O acesso não foi autorizado na tela da rede.',
+}
 
 // O que cada rede entrega e o que falta para ligar.
 const SOBRE: Record<Rede, { entrega: string; passos?: string[]; aviso?: string }> = {
@@ -31,16 +41,37 @@ const SOBRE: Record<Rede, { entrega: string; passos?: string[]; aviso?: string }
     aviso: 'O Substack não libera assinantes nem aberturas. Esses números entram à mão ou pela planilha que ele exporta.',
   },
   pinterest: {
-    entrega: 'Pins, impressões, salvos e cliques.',
-    passos: ['Ter conta comercial no Pinterest.', 'Criar um app em developers.pinterest.com.', 'Autorizar a Central a ler a conta.'],
+    entrega: 'Seguidores, pins e, por dia, impressões, salvos e cliques (com até 30 dias para trás).',
+    passos: [
+      'Ter conta comercial no Pinterest (Configurações → Conta → converter para conta comercial).',
+      'Em developers.pinterest.com, criar um app e pedir o acesso "Trial".',
+      'No app, cadastrar o endereço de retorno: https://nicolle-central.vercel.app/api/conectar/pinterest/callback',
+      'Colocar o App ID e o App secret na Vercel (PINTEREST_APP_ID e PINTEREST_APP_SECRET).',
+      'Voltar aqui e clicar em Conectar.',
+    ],
   },
   tiktok: {
-    entrega: 'Vídeos com visualizações, curtidas e comentários.',
-    passos: ['Criar um app em developers.tiktok.com.', 'Pedir o acesso de leitura (o TikTok analisa e aprova em alguns dias).', 'Autorizar a Central a ler a conta.'],
+    entrega: 'Seguidores, curtidas totais e os números dos 20 vídeos mais recentes.',
+    passos: [
+      'Em developers.tiktok.com, criar um app com Login Kit e os escopos user.info.basic, user.info.stats e video.list.',
+      'Cadastrar o endereço de retorno: https://nicolle-central.vercel.app/api/conectar/tiktok/callback',
+      'Enviar o app para análise (o TikTok aprova em alguns dias).',
+      'Colocar o Client key e o Client secret na Vercel (TIKTOK_CLIENT_KEY e TIKTOK_CLIENT_SECRET).',
+      'Voltar aqui e clicar em Conectar.',
+    ],
+  },
+  youtube: {
+    entrega: 'Inscritos, visualizações totais e número de vídeos do canal, todo dia.',
+    passos: [
+      'Em console.cloud.google.com, criar um projeto e ativar a "YouTube Data API v3".',
+      'Em Credenciais, criar uma chave de API.',
+      'Colocar a chave na Vercel como YOUTUBE_API_KEY.',
+      'Informar aqui embaixo o @ do canal.',
+    ],
   },
   linkedin: {
-    entrega: 'Muito pouco para perfil pessoal: o LinkedIn só libera números de páginas de empresa.',
-    aviso: 'Por enquanto, o melhor caminho é anotar os números do mês à mão.',
+    entrega: 'O LinkedIn só libera números de páginas de empresa, e com aprovação demorada.',
+    aviso: 'Para o perfil pessoal, anote os seguidores de vez em quando aqui embaixo: a curva se forma do mesmo jeito.',
   },
 }
 
@@ -52,14 +83,32 @@ export default function ConexoesPage() {
   const [rodando, setRodando] = useState<Rede | null>(null)
   const [aberta, setAberta] = useState<Rede | null>(null)
   const [aviso, setAviso] = useState<{ rede: Rede; texto: string; ok: boolean } | null>(null)
+  const [manual, setManual] = useState<Partial<Record<Rede, string>>>({})
+  const [canal, setCanal] = useState('')
+
+  // Volta do login de uma rede (?conectado=pinterest ou ?erro=tiktok-state).
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search)
+    const conectado = q.get('conectado') as Rede | null
+    const erro = q.get('erro')
+    if (conectado) { setAviso({ rede: conectado, ok: true, texto: 'Conectado. A primeira leitura já foi feita.' }); setAberta(conectado) }
+    if (erro) {
+      const [rede, ...motivo] = erro.split('-')
+      const chave = motivo.join('-')
+      setAviso({ rede: rede as Rede, ok: false, texto: `${ERROS[chave] ?? 'Não foi possível conectar.'}${q.get('detalhe') ? ` (${q.get('detalhe')})` : ''}` })
+      setAberta(rede as Rede)
+    }
+    if (conectado || erro) window.history.replaceState(null, '', '/configuracoes')
+  }, [])
 
   const carregar = useCallback(async () => {
     const [c, m, e] = await Promise.all([
       supabase.from('conexoes').select('*'),
-      supabase.from('metricas_conta').select('rede, dia, seguidores, publicacoes').order('dia', { ascending: false }).limit(50),
+      supabase.from('metricas_conta').select('rede, dia, seguidores, publicacoes, origem').order('dia', { ascending: false }).limit(200),
       supabase.from('substack_edicoes').select('id, titulo, link, publicado_em').order('publicado_em', { ascending: false }).limit(3),
     ])
     setConexoes((c.data ?? []) as Conexao[])
+    setCanal(((c.data ?? []) as Conexao[]).find((x) => x.rede === 'youtube')?.conta ?? '')
     setMetricas((m.data ?? []) as Metrica[])
     setEdicoes((e.data ?? []) as Edicao[])
   }, [supabase])
@@ -85,7 +134,26 @@ export default function ConexoesPage() {
     }
   }
 
-  const ultima = (rede: Rede) => metricas.find((m) => m.rede === rede)
+  async function anotar(rede: Rede) {
+    const valor = Number((manual[rede] ?? '').replace(/\D/g, ''))
+    if (!valor) return
+    const { error } = await supabase.from('metricas_conta').upsert(
+      { rede, dia: hojeISO(), seguidores: valor, origem: 'manual', coletado_em: new Date().toISOString() },
+      { onConflict: 'rede,dia' }
+    )
+    setAviso({ rede, ok: !error, texto: error ? error.message : `Anotado: ${valor.toLocaleString('pt-BR')} seguidores em ${dataBR(new Date())}.` })
+    setManual((m) => ({ ...m, [rede]: '' }))
+    carregar()
+  }
+
+  async function salvarCanal() {
+    const conta = canal.trim()
+    await supabase.from('conexoes').update({ conta: conta || null }).eq('rede', 'youtube')
+    await carregar()
+    if (conta) sincronizar('youtube')
+  }
+
+  const ultima = (rede: Rede) => metricas.find((m) => m.rede === rede && (m.seguidores != null || m.publicacoes != null))
   const conectadas = conexoes.filter((c) => c.status === 'conectada').length
 
   return (
@@ -106,7 +174,8 @@ export default function ConexoesPage() {
             const sobre = SOBRE[rede]
             const status = c?.status ?? 'desconectada'
             const expandida = aberta === rede
-            const disponivel = rede === 'instagram' || rede === 'substack'
+            const disponivel = AUTOMATICAS.includes(rede) && (status !== 'desconectada' || rede === 'youtube')
+            const oauth = (REDES_OAUTH as readonly string[]).includes(rede)
 
             return (
               <section key={rede}>
@@ -118,7 +187,7 @@ export default function ConexoesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[15px] font-medium text-charcoal">{REDES[rede]}</span>
-                      {c?.conta && <span className="text-[13px] text-muted truncate">{rede === 'substack' ? c.conta : `@${c.conta}`}</span>}
+                      {c?.conta && <span className="text-[13px] text-muted truncate">{rede === 'substack' || rede === 'tiktok' || c.conta.startsWith('@') ? c.conta : `@${c.conta}`}</span>}
                     </div>
                     <div className="text-[12px] text-muted mt-0.5">
                       {status === 'conectada' && c?.ultima_sincronizacao && <>Atualizado {dataHoraBR(c.ultima_sincronizacao)}</>}
@@ -132,7 +201,7 @@ export default function ConexoesPage() {
                       <div className="text-[20px] font-semibold tracking-tight text-charcoal tabular-nums leading-none">
                         {(m.seguidores ?? m.publicacoes)?.toLocaleString('pt-BR')}
                       </div>
-                      <div className="text-[11px] text-muted mt-1">{m.seguidores != null ? 'seguidores' : 'edições'}</div>
+                      <div className="text-[11px] text-muted mt-1">{m.seguidores != null ? (rede === 'youtube' ? 'inscritos' : 'seguidores') : 'edições'}{m.origem === 'manual' ? ' · anotado' : ''}</div>
                     </div>
                   )}
 
@@ -140,6 +209,16 @@ export default function ConexoesPage() {
                     ${status === 'conectada' ? 'bg-olive/[0.12] text-olive' : status === 'erro' ? 'bg-gold/20 text-charcoal' : 'bg-black/[0.05] text-muted'}`}>
                     {status === 'conectada' ? 'Conectada' : status === 'erro' ? 'Com erro' : 'Não conectada'}
                   </span>
+
+                  {oauth && (
+                    <a
+                      href={`/api/conectar/${rede}`}
+                      className={`flex items-center gap-1.5 px-3.5 py-[6px] rounded-full text-[12.5px] font-medium transition-colors
+                        ${status === 'conectada' ? 'text-charcoal/70 hover:bg-black/[0.05]' : 'text-white bg-charcoal hover:bg-black'}`}
+                    >
+                      <LogIn size={13} /> {status === 'conectada' ? 'Reconectar' : 'Conectar'}
+                    </a>
+                  )}
 
                   {disponivel && (
                     <button
@@ -182,6 +261,33 @@ export default function ConexoesPage() {
                           </li>
                         ))}
                       </ol>
+                    )}
+
+                    {rede === 'youtube' && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          value={canal}
+                          onChange={(e) => setCanal(e.target.value)}
+                          placeholder="@seucanal"
+                          className="w-[220px] rounded-[10px] border border-black/[0.10] bg-white px-3 py-1.5 text-[13px] text-charcoal outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+                        />
+                        <button onClick={salvarCanal} className="px-3.5 py-1.5 rounded-full text-[12.5px] font-medium text-charcoal bg-black/[0.05] hover:bg-black/[0.09]">Salvar canal</button>
+                      </div>
+                    )}
+
+                    {rede !== 'substack' && rede !== 'instagram' && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <span className="text-[12px] text-muted">Anotar {rede === 'youtube' ? 'inscritos' : 'seguidores'} de hoje:</span>
+                        <input
+                          inputMode="numeric"
+                          value={manual[rede] ?? ''}
+                          onChange={(e) => setManual((m) => ({ ...m, [rede]: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === 'Enter') anotar(rede) }}
+                          placeholder="ex.: 1250"
+                          className="w-[110px] rounded-[10px] border border-black/[0.10] bg-white px-3 py-1.5 text-[13px] tabular-nums text-charcoal outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+                        />
+                        <button onClick={() => anotar(rede)} className="px-3.5 py-1.5 rounded-full text-[12.5px] font-medium text-charcoal bg-black/[0.05] hover:bg-black/[0.09]">Anotar</button>
+                      </div>
                     )}
 
                     {rede === 'substack' && edicoes.length > 0 && (

@@ -1,4 +1,4 @@
-export type Rede = 'instagram' | 'substack' | 'pinterest' | 'tiktok' | 'linkedin'
+export type Rede = 'instagram' | 'substack' | 'pinterest' | 'tiktok' | 'youtube' | 'linkedin'
 
 export type StatusConexao = 'desconectada' | 'conectada' | 'erro'
 
@@ -20,8 +20,13 @@ export const REDES: Record<Rede, string> = {
   substack: 'Substack',
   pinterest: 'Pinterest',
   tiktok: 'TikTok',
+  youtube: 'YouTube',
   linkedin: 'LinkedIn',
 }
 
 // Ordem de exibição na tela de Conexões.
-export const ORDEM_REDES: Rede[] = ['instagram', 'substack', 'pinterest', 'tiktok', 'linkedin']
+export const ORDEM_REDES: Rede[] = ['instagram', 'substack', 'pinterest', 'tiktok', 'youtube', 'linkedin']
+
+// Redes que se conectam pelo botão "Conectar" (login na própria rede).
+export const REDES_OAUTH = ['pinterest', 'tiktok'] as const
+export type RedeOAuth = (typeof REDES_OAUTH)[number]
