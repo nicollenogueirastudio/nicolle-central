@@ -109,32 +109,34 @@ async function gravarMetricasBasicas(supabase: SupabaseClient, midias: MidiaIG[]
 
 /** Copia a capa do post para o storage (os links da Meta expiram). */
 async function copiarCapas(supabase: SupabaseClient, token: string, limite: number): Promise<number> {
-  const { data: semCapa } = await supabase
-    .from('posts')
-    .select('id, ig_media_id, midias:posts_midia(id)')
-    .eq('origem', 'instagram')
-    .not('ig_media_id', 'is', null)
-    .order('data_hora', { ascending: false })
-    .limit(limite * 4)
-  const pendentes = (semCapa ?? []).filter((p) => (p.midias as unknown[]).length === 0).slice(0, limite)
+  // Todos os posts do Instagram e quais já têm capa (são poucas centenas: cabe numa leitura).
+  const { data: todos } = await supabase.from('posts').select('id, ig_media_id').eq('origem', 'instagram')
+    .not('ig_media_id', 'is', null).order('data_hora', { ascending: false }).limit(2000)
+  const { data: comMidia } = await supabase.from('posts_midia').select('post_id').like('caminho', 'instagram/%').limit(5000)
+  const temCapa = new Set((comMidia ?? []).map((m) => m.post_id))
+  const { data: estadoFalhas } = await supabase.from('sincronizacao_estado').select('valor').eq('chave', 'instagram_capas_falhas').maybeSingle()
+  const falhas = new Set<string>(((estadoFalhas?.valor as { ids?: string[] } | null)?.ids) ?? [])
+  const pendentes = (todos ?? []).filter((p) => !temCapa.has(p.id) && !falhas.has(p.ig_media_id!)).slice(0, limite)
 
   let copiadas = 0
   for (const p of pendentes) {
     try {
       const m = await chamar<MidiaIG>(`/${p.ig_media_id}?fields=media_type,media_url,thumbnail_url`, token)
       const origem = m.media_type === 'VIDEO' ? m.thumbnail_url ?? m.media_url : m.media_url ?? m.thumbnail_url
-      if (!origem) continue
+      if (!origem) { falhas.add(p.ig_media_id!); continue }
       const imagem = await fetch(origem)
-      if (!imagem.ok) continue
+      if (!imagem.ok) { falhas.add(p.ig_media_id!); continue }
       const caminho = `instagram/${p.ig_media_id}.jpg`
       const { error } = await supabase.storage.from(BUCKET).upload(caminho, await imagem.arrayBuffer(), { contentType: 'image/jpeg', upsert: true })
       if (error) continue
       await supabase.from('posts_midia').insert({ post_id: p.id, ordem: 0, caminho, tipo: 'imagem' })
       copiadas++
     } catch {
-      // post apagado ou sem mídia: segue para o próximo
+      // post apagado ou sem mídia: não tenta de novo
+      falhas.add(p.ig_media_id!)
     }
   }
+  await supabase.from('sincronizacao_estado').upsert({ chave: 'instagram_capas_falhas', valor: { ids: Array.from(falhas) }, atualizado_em: new Date().toISOString() })
   return copiadas
 }
 

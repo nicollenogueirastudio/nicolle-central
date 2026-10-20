@@ -50,23 +50,11 @@ const navigation = [
     name: 'Performance',
     href: '/performance',
     icon: BarChart3,
-    submenu: [
-      { name: 'Visão Geral', href: '/performance' },
-      { name: 'Instagram', href: '/performance/instagram' },
-      { name: 'YouTube', href: '/performance/youtube' },
-      { name: 'Pinterest', href: '/performance/pinterest' },
-      { name: 'TikTok', href: '/performance/tiktok' },
-    ]
   },
   {
     name: 'Newsletter',
     href: '/newsletter',
     icon: Mail,
-    submenu: [
-      { name: 'Edições', href: '/newsletter/edicoes' },
-      { name: 'Referências', href: '/newsletter/referencias' },
-      { name: 'Curadoria', href: '/newsletter/curadoria' },
-    ]
   },
 ]
 

@@ -1,393 +1,236 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ExternalLink, Check, Loader2 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import { 
-  Plus,
-  Search,
-  Filter,
-  ExternalLink,
-  Bookmark,
-  Tag,
-  Calendar,
-  Edit3,
-  Trash2,
-  Eye,
-  Send,
-  FileText,
-  Image,
-  Link,
-  MoreVertical
-} from 'lucide-react'
+import { LinhaTempo } from '@/components/performance/Graficos'
+import { criarClienteNavegador } from '@/lib/supabase/client'
+import { dataBR, hojeISO, partesBR, inicioDaSemana, somarDias, diaCurto } from '@/lib/datas'
+import { retratosDaConta, type Retrato } from '@/lib/performance/dados'
 
 type Edicao = {
   id: string
   titulo: string
-  descricao: string
-  status: 'rascunho' | 'agendada' | 'publicada'
-  dataPublicacao?: Date
-  taxaAbertura?: number
-  taxaCliques?: number
+  subtitulo: string | null
+  link: string
+  imagem: string | null
+  publicado_em: string | null
+  aberturas_pct: number | null
+  visualizacoes: number | null
+  novos_assinantes: number | null
+  curtidas: number | null
 }
 
-type Referencia = {
-  id: string
-  titulo: string
-  url?: string
-  categoria: 'produtos' | 'arquitetura' | 'podcasts' | 'livros' | 'filmes' | 'outros'
-  notas?: string
-  dataSalva: Date
-  usadaEm?: string[]
+type Campo = 'aberturas_pct' | 'visualizacoes' | 'novos_assinantes' | 'curtidas'
+const CAMPOS: { k: Campo; nome: string; sufixo?: string }[] = [
+  { k: 'aberturas_pct', nome: 'Abertura', sufixo: '%' },
+  { k: 'visualizacoes', nome: 'Visualizações' },
+  { k: 'novos_assinantes', nome: 'Novos assin.' },
+  { k: 'curtidas', nome: 'Curtidas' },
+]
+
+const cartao = 'bg-white rounded-2xl border border-linha shadow-card'
+const SEMANAS = 16
+
+/** Número anotado à mão: grava ao sair do campo. */
+function CampoNumero({ valor, sufixo, onSalvar }: { valor: number | null; sufixo?: string; onSalvar: (v: number | null) => Promise<void> }) {
+  const [texto, setTexto] = useState(valor == null ? '' : String(valor).replace('.', ','))
+  const [estado, setEstado] = useState<'parado' | 'salvando' | 'salvo'>('parado')
+  useEffect(() => { setTexto(valor == null ? '' : String(valor).replace('.', ',')) }, [valor])
+
+  async function salvar() {
+    const limpo = texto.trim().replace(',', '.')
+    const novo = limpo === '' ? null : Number(limpo)
+    if (novo !== null && Number.isNaN(novo)) return setTexto(valor == null ? '' : String(valor))
+    if (novo === valor) return
+    setEstado('salvando')
+    await onSalvar(novo)
+    setEstado('salvo')
+    setTimeout(() => setEstado('parado'), 1200)
+  }
+
+  return (
+    <span className="relative inline-flex items-center">
+      <input
+        inputMode="decimal"
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
+        onBlur={salvar}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
+        placeholder="—"
+        className="w-[72px] rounded-lg border border-transparent hover:border-black/10 focus:border-accent focus:ring-[3px] focus:ring-accent/15 bg-transparent px-2 py-1 text-right text-[13px] tabular-nums text-charcoal outline-none placeholder:text-muted/50"
+      />
+      {sufixo && texto && <span className="text-[12px] text-muted -ml-1">{sufixo}</span>}
+      {estado === 'salvando' && <Loader2 size={11} className="absolute -right-3 animate-spin text-muted" />}
+      {estado === 'salvo' && <Check size={11} className="absolute -right-3 text-olive" />}
+    </span>
+  )
 }
-
-const edicoesIniciais: Edicao[] = [
-  {
-    id: '1',
-    titulo: 'Casa NOGS #4 - O poder do silêncio nos ambientes',
-    descricao: 'Como o vazio e a ausência de ruído visual transformam a experiência de um espaço',
-    status: 'rascunho',
-  },
-  {
-    id: '2',
-    titulo: 'Casa NOGS #3 - Materiais que contam histórias',
-    descricao: 'A beleza do imperfeito: madeira de demolição, pedras naturais e tecidos artesanais',
-    status: 'publicada',
-    dataPublicacao: new Date('2025-04-01'),
-    taxaAbertura: 72,
-    taxaCliques: 15,
-  },
-  {
-    id: '3',
-    titulo: 'Casa NOGS #2 - Luz natural como protagonista',
-    descricao: 'Projetar com a luz do sol: orientação, aberturas e o ritmo do dia',
-    status: 'publicada',
-    dataPublicacao: new Date('2025-03-15'),
-    taxaAbertura: 68,
-    taxaCliques: 12,
-  },
-]
-
-const referenciasIniciais: Referencia[] = [
-  {
-    id: '1',
-    titulo: 'Vaso cerâmica artesanal - Tania Bulhões',
-    url: 'https://taniabulhoes.com.br',
-    categoria: 'produtos',
-    notas: 'Perfeito para editorial de mesa posta',
-    dataSalva: new Date('2025-04-10'),
-  },
-  {
-    id: '2',
-    titulo: 'Casa Wabi - Tadao Ando',
-    categoria: 'arquitetura',
-    notas: 'Referência máxima de integração com natureza e materialidade',
-    dataSalva: new Date('2025-04-08'),
-  },
-  {
-    id: '3',
-    titulo: 'The Tim Ferriss Show - Kelly Wearstler',
-    url: 'https://tim.blog/kelly-wearstler',
-    categoria: 'podcasts',
-    notas: 'Ela fala sobre processo criativo e construção de marca',
-    dataSalva: new Date('2025-04-05'),
-  },
-  {
-    id: '4',
-    titulo: 'A Poética do Espaço - Gaston Bachelard',
-    categoria: 'livros',
-    notas: 'Filosofia sobre como habitamos os espaços',
-    dataSalva: new Date('2025-04-01'),
-  },
-  {
-    id: '5',
-    titulo: 'Past Lives',
-    categoria: 'filmes',
-    notas: 'Estética visual minimalista, silêncios significativos',
-    dataSalva: new Date('2025-03-28'),
-  },
-]
-
-const categorias = [
-  { id: 'produtos', nome: 'Produtos', emoji: '🛍️', cor: 'bg-pink-100 text-pink-800' },
-  { id: 'arquitetura', nome: 'Arquitetura', emoji: '🏛️', cor: 'bg-blue-100 text-blue-800' },
-  { id: 'podcasts', nome: 'Podcasts', emoji: '🎙️', cor: 'bg-purple-100 text-purple-800' },
-  { id: 'livros', nome: 'Livros', emoji: '📚', cor: 'bg-amber-100 text-amber-800' },
-  { id: 'filmes', nome: 'Filmes', emoji: '🎬', cor: 'bg-red-100 text-red-800' },
-  { id: 'outros', nome: 'Outros', emoji: '✨', cor: 'bg-gray-100 text-gray-800' },
-]
 
 export default function NewsletterPage() {
-  const [edicoes] = useState<Edicao[]>(edicoesIniciais)
-  const [referencias, setReferencias] = useState<Referencia[]>(referenciasIniciais)
-  const [abaAtiva, setAbaAtiva] = useState<'edicoes' | 'referencias'>('edicoes')
-  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null)
-  const [busca, setBusca] = useState('')
+  const supabase = useMemo(() => criarClienteNavegador(), [])
+  const [edicoes, setEdicoes] = useState<Edicao[]>([])
+  const [retratos, setRetratos] = useState<Retrato[]>([])
+  const [erro, setErro] = useState<string | null>(null)
+  const [carregando, setCarregando] = useState(true)
 
-  const referenciasFiltradas = referencias.filter(ref => {
-    if (categoriaFiltro && ref.categoria !== categoriaFiltro) return false
-    if (busca && !ref.titulo.toLowerCase().includes(busca.toLowerCase())) return false
-    return true
-  })
+  const carregar = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.from('substack_edicoes').select('*').order('publicado_em', { ascending: false })
+      if (error) throw error
+      setEdicoes((data ?? []) as Edicao[])
+      setRetratos(await retratosDaConta(supabase, 'substack'))
+      setErro(null)
+    } catch (e) {
+      setErro((e as Error).message)
+    } finally {
+      setCarregando(false)
+    }
+  }, [supabase])
 
-  const refsPorCategoria = categorias.map(cat => ({
-    ...cat,
-    count: referencias.filter(r => r.categoria === cat.id).length
-  }))
+  useEffect(() => { carregar() }, [carregar])
+
+  async function salvarCampo(id: string, k: Campo, v: number | null) {
+    const { error } = await supabase.from('substack_edicoes').update({ [k]: v }).eq('id', id)
+    if (error) setErro(error.message)
+    else setEdicoes((l) => l.map((e) => (e.id === id ? { ...e, [k]: v } : e)))
+  }
+
+  async function salvarAssinantes(v: number | null) {
+    const { error } = await supabase.from('metricas_conta').upsert({ rede: 'substack', dia: hojeISO(), seguidores: v, coletado_em: new Date().toISOString() }, { onConflict: 'rede,dia' })
+    if (error) setErro(error.message)
+    else setRetratos(await retratosDaConta(supabase, 'substack'))
+  }
+
+  const hoje = hojeISO()
+  const publicadas = edicoes.filter((e) => e.publicado_em)
+  const ultima = publicadas[0]
+  const diasDesde = ultima ? Math.round((Date.parse(hoje) - Date.parse(partesBR(ultima.publicado_em!).data)) / 86400000) : null
+  const doMes = publicadas.filter((e) => partesBR(e.publicado_em!).data.slice(0, 7) === hoje.slice(0, 7)).length
+  const assinantes = [...retratos].reverse().find((r) => r.seguidores != null)
+  const curvaAssinantes = retratos.filter((r) => r.seguidores != null).map((r) => ({ dia: r.dia, valor: r.seguidores! }))
+  const aberturas = publicadas.map((e) => e.aberturas_pct).filter((v): v is number => v != null)
+  const aberturaMedia = aberturas.length ? aberturas.reduce((s, v) => s + v, 0) / aberturas.length : null
+
+  // Ritmo: a Casa Nogs é semanal. Uma marca por semana com edição.
+  const semanaAtual = inicioDaSemana(hoje)
+  const semanas = Array.from({ length: SEMANAS }, (_, i) => somarDias(semanaAtual, -7 * (SEMANAS - 1 - i)))
+  const semanasComEdicao = new Set(publicadas.map((e) => inicioDaSemana(partesBR(e.publicado_em!).data)))
+  const cumpridas = semanas.filter((s) => semanasComEdicao.has(s)).length
 
   return (
     <div className="min-h-screen bg-cream">
       <Sidebar />
-      
-      <main className="ml-64 px-10 py-8 max-w-[1600px]">
-        <Header 
-          title="Newsletter" 
-          subtitle="Casa NOGS · Curadoria de lifestyle e design"
-        />
 
-        {/* Stats da Newsletter */}
-        <div className="grid grid-cols-4 gap-6 mb-8">
-          <div className="bg-dark text-white rounded-2xl shadow-card p-6">
-            <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-gold mb-2">Assinantes</div>
-            <div className="font-display text-4xl text-gold">890</div>
-            <div className="text-xs text-warm-beige mt-1">+12% este mês</div>
-          </div>
-          <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-            <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-accent mb-2">Taxa de Abertura</div>
-            <div className="font-display text-4xl">68%</div>
-            <div className="text-xs text-muted mt-1">Média da indústria: 42%</div>
-          </div>
-          <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-            <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-accent mb-2">Taxa de Cliques</div>
-            <div className="font-display text-4xl">12%</div>
-            <div className="text-xs text-muted mt-1">Média da indústria: 4%</div>
-          </div>
-          <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-            <div className="font-mono text-[10px] tracking-[0.15em] uppercase text-accent mb-2">Edições</div>
-            <div className="font-display text-4xl">3</div>
-            <div className="text-xs text-muted mt-1">1 rascunho pendente</div>
-          </div>
-        </div>
+      <main className="ml-64 px-10 py-8 max-w-[1400px]">
+        <Header title="Casa Nogs" subtitle="As edições reais do Substack, lidas do feed todos os dias" />
 
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setAbaAtiva('edicoes')}
-            className={`
-              px-6 py-3 text-sm font-medium transition-all flex items-center gap-2
-              ${abaAtiva === 'edicoes' 
-                ? 'bg-dark text-cream' 
-                : 'bg-white rounded-2xl border border-linha shadow-card hover:bg-warm-beige/50'
-              }
-            `}
-          >
-            <FileText size={16} />
-            Edições
-          </button>
-          <button
-            onClick={() => setAbaAtiva('referencias')}
-            className={`
-              px-6 py-3 text-sm font-medium transition-all flex items-center gap-2
-              ${abaAtiva === 'referencias' 
-                ? 'bg-dark text-cream' 
-                : 'bg-white rounded-2xl border border-linha shadow-card hover:bg-warm-beige/50'
-              }
-            `}
-          >
-            <Bookmark size={16} />
-            Banco de Referências
-          </button>
-        </div>
+        {erro && <div className="mb-4 rounded-xl bg-gold/15 px-4 py-3 text-[13px] text-charcoal">{erro}</div>}
 
-        {/* Edições */}
-        {abaAtiva === 'edicoes' && (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display text-2xl">Edições</h2>
-              <button className="btn-primary flex items-center gap-2">
-                <Plus size={16} />
-                Nova Edição
-              </button>
+        <section className="grid grid-cols-4 gap-4 mb-5">
+          <div className={`${cartao} p-5`}>
+            <div className="text-[12px] text-muted">Edições publicadas</div>
+            <div className="font-display text-[30px] leading-tight text-charcoal tabular-nums mt-1">{carregando ? '—' : publicadas.length}</div>
+            <div className="text-[12px] text-muted mt-1">{doMes} neste mês</div>
+          </div>
+          <div className={`${cartao} p-5`}>
+            <div className="text-[12px] text-muted">Última edição</div>
+            <div className="font-display text-[30px] leading-tight text-charcoal tabular-nums mt-1">{diasDesde == null ? '—' : diasDesde === 0 ? 'hoje' : `há ${diasDesde} ${diasDesde === 1 ? 'dia' : 'dias'}`}</div>
+            <div className={`text-[12px] mt-1 ${diasDesde != null && diasDesde > 7 ? 'text-[#8C6B3F] font-medium' : 'text-muted'}`}>
+              {diasDesde != null && diasDesde > 7 ? 'passou da semana: a promessa é semanal' : ultima ? dataBR(ultima.publicado_em!) : ''}
             </div>
+          </div>
+          <div className={`${cartao} p-5`}>
+            <div className="text-[12px] text-muted">Assinantes</div>
+            <div className="flex items-baseline gap-1 mt-1">
+              <span className="font-display text-[30px] leading-tight text-charcoal tabular-nums">{assinantes?.seguidores?.toLocaleString('pt-BR') ?? '—'}</span>
+            </div>
+            <div className="text-[12px] text-muted mt-1 flex items-center gap-1">
+              Hoje: <CampoNumero valor={retratos.find((r) => r.dia === hoje)?.seguidores ?? null} onSalvar={salvarAssinantes} />
+            </div>
+          </div>
+          <div className={`${cartao} p-5`}>
+            <div className="text-[12px] text-muted">Abertura média</div>
+            <div className="font-display text-[30px] leading-tight text-charcoal tabular-nums mt-1">{aberturaMedia == null ? '—' : `${aberturaMedia.toFixed(0)}%`}</div>
+            <div className="text-[12px] text-muted mt-1">{aberturas.length ? `de ${aberturas.length} ${aberturas.length === 1 ? 'edição anotada' : 'edições anotadas'}` : 'anote nas edições abaixo'}</div>
+          </div>
+        </section>
 
-            <div className="space-y-4">
-              {edicoes.map(edicao => (
-                <div 
-                  key={edicao.id}
-                  className="bg-white rounded-2xl border border-linha shadow-card p-6 card-hover"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className={`
-                          text-[10px] px-2 py-1 rounded uppercase tracking-wider font-medium
-                          ${edicao.status === 'publicada' ? 'bg-green-100 text-green-700' : 
-                            edicao.status === 'agendada' ? 'bg-blue-100 text-blue-700' : 
-                            'bg-warm-beige text-charcoal'}
-                        `}>
-                          {edicao.status}
-                        </span>
-                        {edicao.dataPublicacao && (
-                          <span className="text-xs text-muted flex items-center gap-1">
-                            <Calendar size={12} />
-                            {edicao.dataPublicacao.toLocaleDateString('pt-BR')}
-                          </span>
-                        )}
+        <section className="grid grid-cols-[1fr_1.3fr] gap-5 mb-5">
+          <div className={`${cartao} p-5`}>
+            <div className="text-[14px] font-medium text-charcoal">Ritmo semanal</div>
+            <p className="text-[12px] text-muted mb-4">{cumpridas} de {SEMANAS} semanas com edição. Cada quadrado é uma semana.</p>
+            <div className="grid grid-cols-8 gap-1.5">
+              {semanas.map((s) => (
+                <div key={s} title={`Semana de ${diaCurto(s)}${semanasComEdicao.has(s) ? ' · com edição' : ' · sem edição'}`}
+                  className={`aspect-square rounded-[5px] ${semanasComEdicao.has(s) ? 'bg-olive' : 'bg-black/[0.06]'} ${s === semanaAtual ? 'ring-2 ring-offset-2 ring-black/15' : ''}`} />
+              ))}
+            </div>
+            <div className="flex items-center gap-4 mt-3 text-[11px] text-muted">
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-[3px] bg-olive" /> com edição</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-[3px] bg-black/[0.06]" /> sem edição</span>
+            </div>
+          </div>
+
+          <div className={`${cartao} p-5`}>
+            <div className="text-[14px] font-medium text-charcoal mb-2">Assinantes ao longo do tempo</div>
+            {curvaAssinantes.length >= 2
+              ? <LinhaTempo pontos={curvaAssinantes} rotulo="Assinantes" />
+              : (
+                <p className="text-[13px] text-muted py-10 text-center max-w-[460px] mx-auto">
+                  O Substack não tem API e o feed não traz assinantes. Anote o número do painel do Substack (Estatísticas → Assinantes) no cartão acima, de vez em quando, e a curva se forma aqui.
+                </p>
+              )}
+          </div>
+        </section>
+
+        <section className={`${cartao} overflow-hidden`}>
+          <div className="px-5 pt-5 pb-3 flex items-baseline justify-between">
+            <span className="text-[14px] font-medium text-charcoal">Edições</span>
+            <span className="text-[12px] text-muted">Abertura, visualizações e assinantes: copie do Substack (Estatísticas → Posts). Grava ao sair do campo.</span>
+          </div>
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="text-left text-[11px] text-muted border-y border-linha">
+                <th className="font-medium px-5 py-2">Edição</th>
+                <th className="font-medium py-2 w-[100px]">Data</th>
+                {CAMPOS.map((c) => <th key={c.k} className="font-medium py-2 pr-5 text-right w-[100px]">{c.nome}</th>)}
+                <th className="w-10"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {edicoes.map((e) => (
+                <tr key={e.id} className="border-b border-linha last:border-0 hover:bg-black/[0.02]">
+                  <td className="px-5 py-2.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 h-10 rounded-md bg-cream overflow-hidden shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {e.imagem && <img src={e.imagem} alt="" className="w-full h-full object-cover" />}
                       </div>
-                      <h3 className="font-display text-xl mb-2">{edicao.titulo}</h3>
-                      <p className="text-sm text-muted">{edicao.descricao}</p>
-                      
-                      {edicao.status === 'publicada' && (
-                        <div className="flex gap-6 mt-4 pt-4 border-t border-warm-beige/30">
-                          <div>
-                            <span className="text-xs text-muted">Abertura</span>
-                            <div className="font-display text-lg text-gold">{edicao.taxaAbertura}%</div>
-                          </div>
-                          <div>
-                            <span className="text-xs text-muted">Cliques</span>
-                            <div className="font-display text-lg text-gold">{edicao.taxaCliques}%</div>
-                          </div>
-                        </div>
-                      )}
+                      <div className="min-w-0">
+                        <div className="text-charcoal font-medium truncate max-w-[420px]">{e.titulo}</div>
+                        {e.subtitulo && <div className="text-[12px] text-muted truncate max-w-[420px]">{e.subtitulo}</div>}
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      {edicao.status === 'rascunho' && (
-                        <>
-                          <button className="p-2 text-muted hover:text-charcoal transition-colors">
-                            <Edit3 size={18} />
-                          </button>
-                          <button className="p-2 text-muted hover:text-charcoal transition-colors">
-                            <Eye size={18} />
-                          </button>
-                          <button className="btn-primary flex items-center gap-2">
-                            <Send size={14} />
-                            Publicar
-                          </button>
-                        </>
-                      )}
-                      {edicao.status === 'publicada' && (
-                        <button className="p-2 text-muted hover:text-charcoal transition-colors">
-                          <ExternalLink size={18} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                  </td>
+                  <td className="py-2.5 text-charcoal/80 tabular-nums">{e.publicado_em ? dataBR(e.publicado_em) : '—'}</td>
+                  {CAMPOS.map((c) => (
+                    <td key={c.k} className="py-2.5 pr-5 text-right">
+                      <CampoNumero valor={e[c.k]} sufixo={c.sufixo} onSalvar={(v) => salvarCampo(e.id, c.k, v)} />
+                    </td>
+                  ))}
+                  <td className="py-2.5 pr-4">
+                    <a href={e.link} target="_blank" rel="noreferrer" aria-label="Abrir no Substack" className="text-muted hover:text-charcoal"><ExternalLink size={13} /></a>
+                  </td>
+                </tr>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Banco de Referências */}
-        {abaAtiva === 'referencias' && (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-display text-2xl">Banco de Referências</h2>
-              <button className="btn-primary flex items-center gap-2">
-                <Plus size={16} />
-                Salvar Referência
-              </button>
-            </div>
-
-            {/* Filtros por categoria */}
-            <div className="flex gap-3 mb-6">
-              <button
-                onClick={() => setCategoriaFiltro(null)}
-                className={`
-                  px-4 py-2 text-xs font-medium transition-all
-                  ${!categoriaFiltro 
-                    ? 'bg-dark text-cream' 
-                    : 'bg-warm-beige/50 hover:bg-warm-beige'
-                  }
-                `}
-              >
-                Todas ({referencias.length})
-              </button>
-              {refsPorCategoria.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoriaFiltro(categoriaFiltro === cat.id ? null : cat.id)}
-                  className={`
-                    px-4 py-2 text-xs font-medium transition-all flex items-center gap-2
-                    ${categoriaFiltro === cat.id 
-                      ? cat.cor 
-                      : 'bg-warm-beige/50 hover:bg-warm-beige'
-                    }
-                  `}
-                >
-                  <span>{cat.emoji}</span>
-                  {cat.nome} ({cat.count})
-                </button>
-              ))}
-            </div>
-
-            {/* Busca */}
-            <div className="relative mb-6">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                type="text"
-                placeholder="Buscar referências..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-white rounded-2xl border border-linha shadow-card"
-              />
-            </div>
-
-            {/* Grid de Referências */}
-            <div className="grid grid-cols-3 gap-4">
-              {referenciasFiltradas.map(ref => {
-                const categoria = categorias.find(c => c.id === ref.categoria)
-                
-                return (
-                  <div 
-                    key={ref.id}
-                    className="bg-white rounded-2xl border border-linha shadow-card p-5 card-hover group"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <span className={`
-                        text-[10px] px-2 py-1 rounded font-medium
-                        ${categoria?.cor}
-                      `}>
-                        {categoria?.emoji} {categoria?.nome}
-                      </span>
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted hover:text-charcoal">
-                        <MoreVertical size={16} />
-                      </button>
-                    </div>
-
-                    <h3 className="font-medium text-sm mb-2 line-clamp-2">{ref.titulo}</h3>
-                    
-                    {ref.notas && (
-                      <p className="text-xs text-muted mb-3 line-clamp-2">{ref.notas}</p>
-                    )}
-
-                    <div className="flex items-center justify-between text-[10px] text-muted">
-                      <span>{ref.dataSalva.toLocaleDateString('pt-BR')}</span>
-                      {ref.url && (
-                        <a 
-                          href={ref.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-accent hover:text-gold"
-                        >
-                          <Link size={10} />
-                          Ver link
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-
-              {/* Card para adicionar */}
-              <button className="border-2 border-dashed border-warm-beige hover:border-gold hover:bg-gold/5 transition-all p-5 flex flex-col items-center justify-center min-h-[150px] text-muted hover:text-gold">
-                <Plus size={24} className="mb-2" />
-                <span className="text-xs">Adicionar referência</span>
-              </button>
-            </div>
-          </div>
-        )}
+              {!carregando && edicoes.length === 0 && (
+                <tr><td colSpan={7} className="py-12 text-center text-muted">Nenhuma edição lida ainda. Confira a conexão do Substack em Conexões.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </section>
       </main>
     </div>
   )

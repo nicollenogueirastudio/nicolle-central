@@ -1,521 +1,246 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { ChevronLeft, ChevronRight, ExternalLink, Film, Layers, Image as ImageIcon, Circle } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import StatCard from '@/components/StatCard'
-import { 
-  Instagram, 
-  Youtube, 
-  Mail,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Eye,
-  Heart,
-  MessageCircle,
-  Share2,
-  Play,
-  Clock,
-  MousePointer,
-  ArrowUpRight
-} from 'lucide-react'
+import { LinhaTempo, BarrasH } from '@/components/performance/Graficos'
+import { criarClienteNavegador } from '@/lib/supabase/client'
+import { hojeISO, instanteDeBR, mesExtenso, dataBR, partesBR } from '@/lib/datas'
+import { PILARES, TIPOS, type Pilar, type Tipo } from '@/lib/posts/tipos'
+import { quadroPorId } from '@/lib/posts/estrategia'
+import {
+  retratosDaConta, postsMedidos, resumoDoGrupo, agrupar, forca, compacto, pct,
+  type Retrato, type PostMedido,
+} from '@/lib/performance/dados'
 
-// Dados mockados - depois virão das APIs
-const metricas = {
-  instagram: {
-    seguidores: 42100,
-    crescimento: 2.3,
-    alcance: 156000,
-    impressoes: 245000,
-    engajamento: 4.8,
-    curtidas: 12500,
-    comentarios: 890,
-    compartilhamentos: 456,
-    salvamentos: 2100,
-    melhorPost: {
-      tipo: 'Carrossel',
-      titulo: 'Tour projeto Jardins',
-      alcance: 45000,
-      engajamento: 8.2
-    },
-    melhorHorario: '18:00 - 20:00',
-    melhorDia: 'Terça-feira'
-  },
-  youtube: {
-    inscritos: 1240,
-    crescimento: 15.7,
-    visualizacoes: 28000,
-    horasAssistidas: 1200,
-    ctr: 5.2,
-    retencao: 45,
-    melhorVideo: {
-      titulo: 'Como criar ambientes acolhedores',
-      views: 8500,
-      retencao: 52
-    }
-  },
-  pinterest: {
-    seguidores: 3200,
-    crescimento: 8.4,
-    impressoes: 89000,
-    cliques: 4500,
-    salvamentos: 2300,
-    melhorPin: {
-      titulo: 'Paleta de cores neutras',
-      impressoes: 12000,
-      salvamentos: 450
-    }
-  },
-  newsletter: {
-    assinantes: 890,
-    crescimento: 12.1,
-    taxaAbertura: 68,
-    taxaCliques: 12,
-    ultimaEdicao: {
-      titulo: 'Casa NOGS #3',
-      abertura: 72,
-      cliques: 15
-    }
-  }
+const iconeTipo = { feed: ImageIcon, carrossel: Layers, reels: Film, story: Circle }
+const cartao = 'bg-white rounded-2xl border border-linha shadow-card'
+
+const somarMes = (mes: string, d: number) => {
+  const [a, m] = mes.split('-').map(Number)
+  return new Date(Date.UTC(a, m - 1 + d, 1)).toISOString().slice(0, 7)
+}
+const intervaloDoMes = (mes: string) => ({ de: instanteDeBR(`${mes}-01`, '00:00'), ate: instanteDeBR(`${somarMes(mes, 1)}-01`, '00:00') })
+
+function Variacao({ atual, anterior, formato = 'numero' }: { atual: number | null; anterior: number | null; formato?: 'numero' | 'pct' }) {
+  if (atual == null || anterior == null || anterior === 0) return <span className="text-[12px] text-muted">sem mês anterior para comparar</span>
+  const d = formato === 'pct' ? (atual - anterior) * 100 : ((atual - anterior) / anterior) * 100
+  const sinal = d > 0 ? '+' : ''
+  return (
+    <span className="text-[12px] text-muted">
+      <span className={d >= 0 ? 'text-olive font-medium' : 'text-[#8C6B3F] font-medium'}>{sinal}{d.toFixed(0)}{formato === 'pct' ? ' p.p.' : '%'}</span> vs mês anterior
+    </span>
+  )
 }
 
-type Rede = 'geral' | 'instagram' | 'youtube' | 'pinterest' | 'newsletter'
-
-const redesConfig = {
-  instagram: { icon: Instagram, cor: 'from-purple-500 to-pink-500', nome: 'Instagram' },
-  youtube: { icon: Youtube, cor: 'from-red-600 to-red-500', nome: 'YouTube' },
-  pinterest: { icon: () => <span>📌</span>, cor: 'from-red-700 to-red-600', nome: 'Pinterest' },
-  newsletter: { icon: Mail, cor: 'from-amber-600 to-amber-500', nome: 'Newsletter' },
+function Tile({ rotulo, valor, nota }: { rotulo: string; valor: string; nota?: React.ReactNode }) {
+  return (
+    <div className={`${cartao} p-5`}>
+      <div className="text-[12px] text-muted">{rotulo}</div>
+      <div className="font-display text-[30px] leading-tight text-charcoal tabular-nums mt-1">{valor}</div>
+      {nota && <div className="mt-1">{nota}</div>}
+    </div>
+  )
 }
 
 export default function PerformancePage() {
-  const [redeAtiva, setRedeAtiva] = useState<Rede>('geral')
+  const supabase = useMemo(() => criarClienteNavegador(), [])
+  const [mes, setMes] = useState(hojeISO().slice(0, 7))
+  const [retratos, setRetratos] = useState<Retrato[]>([])
+  const [posts, setPosts] = useState<PostMedido[]>([])
+  const [anteriores, setAnteriores] = useState<PostMedido[]>([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
 
-  const totalSeguidores = 
-    metricas.instagram.seguidores + 
-    metricas.youtube.inscritos + 
-    metricas.pinterest.seguidores + 
-    metricas.newsletter.assinantes
+  useEffect(() => { retratosDaConta(supabase, 'instagram').then(setRetratos).catch((e) => setErro(e.message)) }, [supabase])
 
-  const crescimentoMedio = (
-    metricas.instagram.crescimento + 
-    metricas.youtube.crescimento + 
-    metricas.pinterest.crescimento + 
-    metricas.newsletter.crescimento
-  ) / 4
+  useEffect(() => {
+    setCarregando(true)
+    const atual = intervaloDoMes(mes), antes = intervaloDoMes(somarMes(mes, -1))
+    Promise.all([postsMedidos(supabase, atual.de, atual.ate), postsMedidos(supabase, antes.de, antes.ate)])
+      .then(([a, b]) => { setPosts(a); setAnteriores(b); setErro(null) })
+      .catch((e) => setErro(e.message))
+      .finally(() => setCarregando(false))
+  }, [supabase, mes])
+
+  const ultimo = retratos[retratos.length - 1]
+  const primeiro = retratos[0]
+  const ganho = ultimo && primeiro && retratos.length > 1 ? (ultimo.seguidores ?? 0) - (primeiro.seguidores ?? 0) : null
+  const detalhe = (ultimo?.detalhe ?? {}) as Record<string, number>
+
+  const resumo = resumoDoGrupo(posts)
+  const resumoAntes = resumoDoGrupo(anteriores)
+  const temAlcance = posts.some((p) => p.alcance != null)
+
+  const porPilar = agrupar(posts, (p) => (p.pilar ?? 'sem') as Pilar | 'sem')
+    .sort((a, b) => (b.alcanceMedio ?? 0) - (a.alcanceMedio ?? 0))
+  const porTipo = agrupar(posts, (p) => p.tipo as Tipo).sort((a, b) => (b.alcanceMedio ?? 0) - (a.alcanceMedio ?? 0))
+  const semPilar = posts.filter((p) => !p.pilar).length
+  const top = [...posts].sort((a, b) => forca(b) - forca(a)).slice(0, 5)
+  const mesAtual = mes === hojeISO().slice(0, 7)
 
   return (
     <div className="min-h-screen bg-cream">
       <Sidebar />
-      
-      <main className="ml-64 px-10 py-8 max-w-[1600px]">
-        <Header 
-          title="Performance" 
-          subtitle="Análise completa das suas redes sociais"
-        />
 
-        {/* Tabs de Redes */}
-        <div className="flex gap-2 mb-8">
-          <button
-            onClick={() => setRedeAtiva('geral')}
-            className={`
-              px-6 py-3 text-sm font-medium transition-all
-              ${redeAtiva === 'geral' 
-                ? 'bg-dark text-cream' 
-                : 'bg-white rounded-2xl border border-linha shadow-card hover:bg-warm-beige/50'
-              }
-            `}
-          >
-            Visão Geral
-          </button>
-          {Object.entries(redesConfig).map(([key, config]) => {
-            const Icon = config.icon
-            return (
-              <button
-                key={key}
-                onClick={() => setRedeAtiva(key as Rede)}
-                className={`
-                  px-6 py-3 text-sm font-medium transition-all flex items-center gap-2
-                  ${redeAtiva === key 
-                    ? `bg-gradient-to-r ${config.cor} text-white` 
-                    : 'bg-white rounded-2xl border border-linha shadow-card hover:bg-warm-beige/50'
-                  }
-                `}
-              >
-                {typeof Icon === 'function' && Icon.toString().includes('span') ? (
-                  <Icon />
-                ) : (
-                  <Icon size={16} />
-                )}
-                {config.nome}
-              </button>
-            )
-          })}
+      <main className="ml-64 px-10 py-8 max-w-[1400px]">
+        <Header title="Performance" subtitle="Números reais do Instagram, lidos da Meta todos os dias" />
+
+        {erro && <div className="mb-4 rounded-xl bg-gold/15 px-4 py-3 text-[13px] text-charcoal">Não foi possível carregar: {erro}</div>}
+
+        {/* Conta */}
+        <section className="grid grid-cols-[1fr_1.6fr] gap-5 mb-10">
+          <div className="grid grid-cols-2 gap-4 content-start">
+            <Tile
+              rotulo="Seguidores"
+              valor={ultimo?.seguidores != null ? ultimo.seguidores.toLocaleString('pt-BR') : '—'}
+              nota={<span className="text-[12px] text-muted">{ganho == null ? `desde ${primeiro ? dataBR(primeiro.dia + 'T12:00:00Z') : 'hoje'}` : `${ganho >= 0 ? '+' : ''}${ganho} desde ${dataBR(primeiro.dia + 'T12:00:00Z').slice(0, 5)}`}</span>}
+            />
+            <Tile rotulo="Publicações no perfil" valor={ultimo?.publicacoes != null ? String(ultimo.publicacoes) : '—'} />
+            <Tile rotulo="Alcance da conta (ontem)" valor={compacto(detalhe.alcance)} nota={<span className="text-[12px] text-muted">contas diferentes que viram algo</span>} />
+            <Tile rotulo="Visitas ao perfil (ontem)" valor={compacto(detalhe.visitas_perfil)} nota={detalhe.cliques_site != null ? <span className="text-[12px] text-muted">{detalhe.cliques_site} cliques no site</span> : undefined} />
+          </div>
+
+          <div className={`${cartao} p-5`}>
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-[14px] font-medium text-charcoal">Seguidores por dia</span>
+              <span className="text-[12px] text-muted">um ponto por dia</span>
+            </div>
+            {retratos.length >= 2
+              ? <LinhaTempo pontos={retratos.filter((r) => r.seguidores != null).map((r) => ({ dia: r.dia, valor: r.seguidores! }))} rotulo="Seguidores" />
+              : (
+                <div className="h-[200px] flex flex-col items-center justify-center text-center px-10">
+                  <div className="font-display text-[34px] text-charcoal tabular-nums">{ultimo?.seguidores?.toLocaleString('pt-BR') ?? '—'}</div>
+                  <p className="text-[13px] text-muted mt-2 max-w-[420px]">
+                    A curva começa em {primeiro ? dataBR(primeiro.dia + 'T12:00:00Z') : 'hoje'}, quando o Instagram foi conectado. A Meta não guarda o histórico de seguidores; a partir de agora cada dia ganha um ponto.
+                  </p>
+                </div>
+              )}
+          </div>
+        </section>
+
+        {/* Estudo do mês */}
+        <div className="flex items-center gap-1 mb-5">
+          <button onClick={() => setMes(somarMes(mes, -1))} aria-label="Mês anterior" className="w-8 h-8 rounded-full flex items-center justify-center text-charcoal/70 hover:bg-black/[0.05]"><ChevronLeft size={18} /></button>
+          <button onClick={() => setMes(somarMes(mes, 1))} disabled={mesAtual} aria-label="Próximo mês" className="w-8 h-8 rounded-full flex items-center justify-center text-charcoal/70 hover:bg-black/[0.05] disabled:opacity-30"><ChevronRight size={18} /></button>
+          <h2 className="font-display text-[24px] text-charcoal ml-2 first-letter:uppercase">Estudo de {mesExtenso(mes)}</h2>
+          {!mesAtual && <button onClick={() => setMes(hojeISO().slice(0, 7))} className="ml-3 px-3 py-1 rounded-full text-[12px] font-medium text-charcoal bg-black/[0.05] hover:bg-black/[0.09]">Este mês</button>}
         </div>
 
-        {/* Visão Geral */}
-        {redeAtiva === 'geral' && (
-          <>
-            {/* Stats principais */}
-            <div className="grid grid-cols-4 gap-6 mb-8">
-              <StatCard
-                title="Audiência Total"
-                value={`${(totalSeguidores / 1000).toFixed(1)}K`}
-                change={`+${crescimentoMedio.toFixed(1)}% este mês`}
-                changeType="positive"
-                icon={Users}
-                highlight
-              />
-              <StatCard
-                title="Alcance Mensal"
-                value="320K"
-                change="+18% vs mês anterior"
-                changeType="positive"
-                icon={Eye}
-              />
-              <StatCard
-                title="Engajamento Médio"
-                value="4.8%"
-                change="Acima da média do setor"
-                changeType="positive"
-                icon={Heart}
-              />
-              <StatCard
-                title="Taxa de Crescimento"
-                value={`${crescimentoMedio.toFixed(1)}%`}
-                change="Média mensal"
-                changeType="positive"
-                icon={TrendingUp}
-              />
-            </div>
+        <div className={`transition-opacity ${carregando ? 'opacity-50' : ''}`}>
+          <section className="grid grid-cols-4 gap-4 mb-5">
+            <Tile rotulo="Posts publicados" valor={String(resumo.posts)} nota={<Variacao atual={resumo.posts} anterior={resumoAntes.posts || null} />} />
+            <Tile rotulo="Alcance médio por post" valor={compacto(resumo.alcanceMedio)} nota={<Variacao atual={resumo.alcanceMedio} anterior={resumoAntes.alcanceMedio} />} />
+            <Tile rotulo="Curtidas médias" valor={compacto(resumo.curtidasMedias)} nota={<Variacao atual={resumo.curtidasMedias} anterior={resumoAntes.curtidasMedias} />} />
+            <Tile rotulo="Taxa de salvamento" valor={pct(resumo.salvamento)} nota={<span className="text-[12px] text-muted">salvos ÷ alcance: o sinal de desejo</span>} />
+          </section>
 
-            {/* Cards por rede */}
-            <div className="grid grid-cols-2 gap-6">
-              {/* Instagram */}
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                      <Instagram size={24} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-display text-xl">Instagram</h3>
-                      <p className="text-xs text-muted">@nicollenogueiraestudio</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setRedeAtiva('instagram')}
-                    className="text-xs text-accent hover:text-gold flex items-center gap-1"
-                  >
-                    Ver detalhes <ArrowUpRight size={12} />
-                  </button>
+          {posts.length === 0 ? (
+            <div className={`${cartao} p-14 text-center text-[13px] text-muted`}>Nenhum post publicado em {mesExtenso(mes)}.</div>
+          ) : (
+            <>
+              <section className="grid grid-cols-2 gap-5 mb-5">
+                <div className={`${cartao} p-5`}>
+                  <div className="text-[14px] font-medium text-charcoal">Alcance médio por pilar</div>
+                  <p className="text-[12px] text-muted mb-4">Passe o mouse para ver posts e salvamento.</p>
+                  <BarrasH
+                    formatar={temAlcance ? compacto : () => 'sem alcance'}
+                    linhas={porPilar.map((g) => ({
+                      nome: g.chave === 'sem' ? 'Sem pilar' : PILARES[g.chave as Pilar],
+                      valor: g.alcanceMedio,
+                      detalhe: `${g.posts} ${g.posts === 1 ? 'post' : 'posts'} · salvamento ${pct(g.salvamento)}`,
+                    }))}
+                  />
+                  {semPilar > 0 && (
+                    <p className="text-[12px] text-muted mt-4">
+                      {semPilar} {semPilar === 1 ? 'post sem pilar' : 'posts sem pilar'}. Os importados do Instagram chegam sem pilar: abra cada um no <Link href="/marketing" className="text-charcoal underline underline-offset-2">calendário</Link> e marque. O estudo fica mais preciso a cada post classificado.
+                    </p>
+                  )}
                 </div>
+                <div className={`${cartao} p-5`}>
+                  <div className="text-[14px] font-medium text-charcoal">Alcance médio por formato</div>
+                  <p className="text-[12px] text-muted mb-4">Passe o mouse para ver posts e salvamento.</p>
+                  <BarrasH
+                    formatar={temAlcance ? compacto : () => 'sem alcance'}
+                    linhas={porTipo.map((g) => ({
+                      nome: TIPOS[g.chave as Tipo],
+                      valor: g.alcanceMedio,
+                      detalhe: `${g.posts} ${g.posts === 1 ? 'post' : 'posts'} · salvamento ${pct(g.salvamento)}`,
+                    }))}
+                  />
+                </div>
+              </section>
 
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl">{(metricas.instagram.seguidores / 1000).toFixed(1)}K</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Seguidores</div>
-                  </div>
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl">{metricas.instagram.engajamento}%</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Engajamento</div>
-                  </div>
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl text-green-600">+{metricas.instagram.crescimento}%</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Crescimento</div>
-                  </div>
+              <section className={`${cartao} p-5 mb-5`}>
+                <div className="text-[14px] font-medium text-charcoal mb-4">Os 5 mais fortes do mês</div>
+                <div className="grid grid-cols-5 gap-3">
+                  {top.map((p, i) => (
+                    <a key={p.id} href={p.permalink ?? '#'} target="_blank" rel="noreferrer" className="group">
+                      <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-cream">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        {p.capa && <img src={p.capa} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]" />}
+                        <span className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/50 backdrop-blur-md text-white text-[11px] font-medium flex items-center justify-center">{i + 1}</span>
+                      </div>
+                      <div className="mt-2 text-[12.5px] font-medium text-charcoal truncate">{p.titulo || 'Sem título'}</div>
+                      <div className="text-[11.5px] text-muted tabular-nums">
+                        {p.alcance != null ? `${compacto(p.alcance)} alcance · ` : ''}{compacto(p.curtidas)} curtidas{p.salvos ? ` · ${p.salvos} salvos` : ''}
+                      </div>
+                    </a>
+                  ))}
                 </div>
+              </section>
 
-                <div className="text-xs text-muted">
-                  Melhor horário: <span className="text-charcoal">{metricas.instagram.melhorHorario}</span> · 
-                  Melhor dia: <span className="text-charcoal">{metricas.instagram.melhorDia}</span>
-                </div>
-              </div>
+              <section className={`${cartao} overflow-hidden`}>
+                <div className="px-5 pt-5 pb-3 text-[14px] font-medium text-charcoal">Todos os posts do mês</div>
+                <table className="w-full text-[13px]">
+                  <thead>
+                    <tr className="text-left text-[11px] text-muted border-y border-linha">
+                      <th className="font-medium px-5 py-2">Post</th>
+                      <th className="font-medium py-2 w-[120px]">Pilar</th>
+                      {['Alcance', 'Curtidas', 'Coment.', 'Salvos', 'Compart.', 'Visualiz.'].map((c) => <th key={c} className="font-medium py-2 pr-4 text-right w-[80px]">{c}</th>)}
+                      <th className="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {posts.map((p) => {
+                      const Icone = iconeTipo[p.tipo]
+                      const q = quadroPorId(p.quadro)
+                      return (
+                        <tr key={p.id} className="border-b border-linha last:border-0 hover:bg-black/[0.02]">
+                          <td className="px-5 py-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-11 rounded-md bg-cream overflow-hidden shrink-0 flex items-center justify-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                {p.capa ? <img src={p.capa} alt="" className="w-full h-full object-cover" /> : <Icone size={12} className="text-muted" />}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-charcoal truncate max-w-[360px]">{p.titulo || p.legenda?.slice(0, 50) || 'Sem título'}</div>
+                                <div className="text-[11px] text-muted flex items-center gap-1.5"><Icone size={11} />{TIPOS[p.tipo]} · {partesBR(p.data_hora).data.split('-').reverse().slice(0, 2).join('/')}{q && <> · {q.nome}</>}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-2 text-charcoal/80">{p.pilar ? PILARES[p.pilar] : <span className="text-muted">—</span>}</td>
+                          {[p.alcance, p.curtidas, p.comentarios, p.salvos, p.compartilhamentos, p.visualizacoes].map((v, i) => (
+                            <td key={i} className="py-2 pr-4 text-right tabular-nums text-charcoal">{v == null ? <span className="text-muted">—</span> : v.toLocaleString('pt-BR')}</td>
+                          ))}
+                          <td className="py-2 pr-4">
+                            {p.permalink && <a href={p.permalink} target="_blank" rel="noreferrer" aria-label="Abrir no Instagram" className="text-muted hover:text-charcoal"><ExternalLink size={13} /></a>}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </section>
+            </>
+          )}
+        </div>
 
-              {/* YouTube */}
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
-                      <Youtube size={24} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-display text-xl">YouTube</h3>
-                      <p className="text-xs text-muted">Nicolle Nogueira</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setRedeAtiva('youtube')}
-                    className="text-xs text-accent hover:text-gold flex items-center gap-1"
-                  >
-                    Ver detalhes <ArrowUpRight size={12} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl">{(metricas.youtube.inscritos / 1000).toFixed(1)}K</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Inscritos</div>
-                  </div>
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl">{metricas.youtube.retencao}%</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Retenção</div>
-                  </div>
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl text-green-600">+{metricas.youtube.crescimento}%</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Crescimento</div>
-                  </div>
-                </div>
-
-                <div className="text-xs text-muted">
-                  {metricas.youtube.horasAssistidas.toLocaleString()} horas assistidas este mês
-                </div>
-              </div>
-
-              {/* Pinterest */}
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-red-700 rounded-lg flex items-center justify-center text-2xl">
-                      📌
-                    </div>
-                    <div>
-                      <h3 className="font-display text-xl">Pinterest</h3>
-                      <p className="text-xs text-muted">nicollenogueiraestudio</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setRedeAtiva('pinterest')}
-                    className="text-xs text-accent hover:text-gold flex items-center gap-1"
-                  >
-                    Ver detalhes <ArrowUpRight size={12} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl">{(metricas.pinterest.seguidores / 1000).toFixed(1)}K</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Seguidores</div>
-                  </div>
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl">{(metricas.pinterest.impressoes / 1000).toFixed(0)}K</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Impressões</div>
-                  </div>
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl text-green-600">+{metricas.pinterest.crescimento}%</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Crescimento</div>
-                  </div>
-                </div>
-
-                <div className="text-xs text-muted">
-                  {metricas.pinterest.salvamentos.toLocaleString()} salvamentos este mês
-                </div>
-              </div>
-
-              {/* Newsletter */}
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-amber-600 rounded-lg flex items-center justify-center">
-                      <Mail size={24} className="text-white" />
-                    </div>
-                    <div>
-                      <h3 className="font-display text-xl">Casa NOGS</h3>
-                      <p className="text-xs text-muted">Newsletter no Substack</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setRedeAtiva('newsletter')}
-                    className="text-xs text-accent hover:text-gold flex items-center gap-1"
-                  >
-                    Ver detalhes <ArrowUpRight size={12} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl">{metricas.newsletter.assinantes}</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Assinantes</div>
-                  </div>
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl">{metricas.newsletter.taxaAbertura}%</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Abertura</div>
-                  </div>
-                  <div className="text-center p-3 bg-cream rounded-xl rounded">
-                    <div className="font-display text-2xl text-green-600">+{metricas.newsletter.crescimento}%</div>
-                    <div className="text-[10px] text-muted uppercase tracking-wider">Crescimento</div>
-                  </div>
-                </div>
-
-                <div className="text-xs text-muted">
-                  Taxa de cliques: <span className="text-charcoal">{metricas.newsletter.taxaCliques}%</span> (acima da média)
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Instagram Detalhado */}
-        {redeAtiva === 'instagram' && (
-          <>
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-8 mb-8">
-              <div className="flex items-center gap-4 mb-6">
-                <Instagram size={40} />
-                <div>
-                  <h2 className="font-display text-3xl">Instagram</h2>
-                  <p className="opacity-80">@nicollenogueiraestudio</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-5 gap-6">
-                <div>
-                  <div className="font-display text-4xl">{(metricas.instagram.seguidores / 1000).toFixed(1)}K</div>
-                  <div className="text-sm opacity-80">Seguidores</div>
-                </div>
-                <div>
-                  <div className="font-display text-4xl">{metricas.instagram.engajamento}%</div>
-                  <div className="text-sm opacity-80">Engajamento</div>
-                </div>
-                <div>
-                  <div className="font-display text-4xl">{(metricas.instagram.alcance / 1000).toFixed(0)}K</div>
-                  <div className="text-sm opacity-80">Alcance</div>
-                </div>
-                <div>
-                  <div className="font-display text-4xl">{(metricas.instagram.impressoes / 1000).toFixed(0)}K</div>
-                  <div className="text-sm opacity-80">Impressões</div>
-                </div>
-                <div>
-                  <div className="font-display text-4xl text-green-300">+{metricas.instagram.crescimento}%</div>
-                  <div className="text-sm opacity-80">Crescimento</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
-                <Heart size={24} className="mx-auto mb-3 text-pink-500" />
-                <div className="font-display text-3xl">{(metricas.instagram.curtidas / 1000).toFixed(1)}K</div>
-                <div className="text-xs text-muted">Curtidas</div>
-              </div>
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
-                <MessageCircle size={24} className="mx-auto mb-3 text-blue-500" />
-                <div className="font-display text-3xl">{metricas.instagram.comentarios}</div>
-                <div className="text-xs text-muted">Comentários</div>
-              </div>
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
-                <Share2 size={24} className="mx-auto mb-3 text-green-500" />
-                <div className="font-display text-3xl">{metricas.instagram.compartilhamentos}</div>
-                <div className="text-xs text-muted">Compartilhamentos</div>
-              </div>
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
-                <svg className="w-6 h-6 mx-auto mb-3 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
-                </svg>
-                <div className="font-display text-3xl">{(metricas.instagram.salvamentos / 1000).toFixed(1)}K</div>
-                <div className="text-xs text-muted">Salvamentos</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-                <h3 className="font-display text-xl mb-4">Melhor Post do Mês</h3>
-                <div className="bg-cream p-4 rounded">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-16 h-16 bg-warm-beige rounded"></div>
-                    <div>
-                      <p className="font-medium">{metricas.instagram.melhorPost.titulo}</p>
-                      <p className="text-xs text-muted">{metricas.instagram.melhorPost.tipo}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4 text-sm">
-                    <span><strong>{(metricas.instagram.melhorPost.alcance / 1000).toFixed(0)}K</strong> alcance</span>
-                    <span><strong>{metricas.instagram.melhorPost.engajamento}%</strong> engajamento</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6">
-                <h3 className="font-display text-xl mb-4">Insights de Publicação</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted">Melhor horário</span>
-                    <span className="font-mono text-sm">{metricas.instagram.melhorHorario}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted">Melhor dia</span>
-                    <span className="font-mono text-sm">{metricas.instagram.melhorDia}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted">Formato que mais engaja</span>
-                    <span className="font-mono text-sm">Carrossel</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* YouTube Detalhado */}
-        {redeAtiva === 'youtube' && (
-          <>
-            <div className="bg-red-600 text-white p-8 mb-8">
-              <div className="flex items-center gap-4 mb-6">
-                <Youtube size={40} />
-                <div>
-                  <h2 className="font-display text-3xl">YouTube</h2>
-                  <p className="opacity-80">Nicolle Nogueira</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-5 gap-6">
-                <div>
-                  <div className="font-display text-4xl">{(metricas.youtube.inscritos / 1000).toFixed(1)}K</div>
-                  <div className="text-sm opacity-80">Inscritos</div>
-                </div>
-                <div>
-                  <div className="font-display text-4xl">{(metricas.youtube.visualizacoes / 1000).toFixed(0)}K</div>
-                  <div className="text-sm opacity-80">Visualizações</div>
-                </div>
-                <div>
-                  <div className="font-display text-4xl">{metricas.youtube.horasAssistidas}</div>
-                  <div className="text-sm opacity-80">Horas assistidas</div>
-                </div>
-                <div>
-                  <div className="font-display text-4xl">{metricas.youtube.retencao}%</div>
-                  <div className="text-sm opacity-80">Retenção média</div>
-                </div>
-                <div>
-                  <div className="font-display text-4xl text-green-300">+{metricas.youtube.crescimento}%</div>
-                  <div className="text-sm opacity-80">Crescimento</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
-                <Play size={24} className="mx-auto mb-3 text-red-500" />
-                <div className="font-display text-3xl">{(metricas.youtube.visualizacoes / 1000).toFixed(0)}K</div>
-                <div className="text-xs text-muted">Visualizações</div>
-              </div>
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
-                <Clock size={24} className="mx-auto mb-3 text-blue-500" />
-                <div className="font-display text-3xl">{metricas.youtube.horasAssistidas}h</div>
-                <div className="text-xs text-muted">Tempo de exibição</div>
-              </div>
-              <div className="bg-white rounded-2xl border border-linha shadow-card p-6 text-center">
-                <MousePointer size={24} className="mx-auto mb-3 text-green-500" />
-                <div className="font-display text-3xl">{metricas.youtube.ctr}%</div>
-                <div className="text-xs text-muted">CTR médio</div>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Pinterest e Newsletter seguem o mesmo padrão */}
-        {(redeAtiva === 'pinterest' || redeAtiva === 'newsletter') && (
-          <div className="bg-white rounded-2xl border border-linha shadow-card p-8 text-center">
-            <p className="text-muted">Detalhes de {redeAtiva === 'pinterest' ? 'Pinterest' : 'Newsletter'} em desenvolvimento...</p>
-          </div>
-        )}
+        <p className="text-[12px] text-muted mt-6">
+          Alcance, salvos, compartilhamentos e visualizações vêm da Meta para posts de conta profissional; posts muito antigos podem vir só com curtidas e comentários. A Casa Nogs fica em <Link href="/newsletter" className="text-charcoal underline underline-offset-2">Newsletter</Link>.
+        </p>
       </main>
     </div>
   )
