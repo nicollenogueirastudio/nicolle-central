@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Plus, Archive, ArchiveRestore, Check, Loader2, Image as ImageIcon, Layers, Film, Circle } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Plus, Archive, ArchiveRestore, Check, Loader2, Image as ImageIcon, Layers, Film, Circle, AlertTriangle } from 'lucide-react'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { instanteDeBR, partesBR, dataHoraBR } from '@/lib/datas'
 import { oQueFaltaParaAgendar, podeMudarPara, contarHashtags, legendaFinal } from '@/lib/posts/regras'
 import { criarPost, salvarPost, arquivarPost, restaurarPost, enviarMidias, reordenarMidias, removerMidia } from '@/lib/posts/dados'
 import { PILARES, STATUS, STATUS_MANUAIS, TIPOS, type Midia, type Pilar, type Post, type PostEditavel, type Status, type Tipo } from '@/lib/posts/tipos'
+import { QUADROS, FASES, TERRITORIOS, quadroPorId, lerVoz, type Fase, type Territorio } from '@/lib/posts/estrategia'
 import PreviaInstagram from './PreviaInstagram'
 import { corPilar, estiloStatus } from './estilos'
 
@@ -29,6 +30,13 @@ type Form = {
   data: string
   hora: string
   status: Status
+  quadro: string
+  fase: Fase | ''
+  territorio: Territorio | ''
+  briefing: string
+  fonte: string
+  nota_aprovacao: string
+  responsavel: string
 }
 
 function formDe(post: Post | null, dataInicial?: string | null): Form {
@@ -43,6 +51,13 @@ function formDe(post: Post | null, dataInicial?: string | null): Form {
     data: partes?.data ?? dataInicial ?? '',
     hora: partes?.hora ?? (dataInicial ? '18:00' : ''),
     status: post?.status ?? (dataInicial ? 'rascunho' : 'ideia'),
+    quadro: post?.quadro ?? '',
+    fase: post?.fase ?? '',
+    territorio: post?.territorio ?? '',
+    briefing: post?.briefing ?? '',
+    fonte: post?.fonte ?? '',
+    nota_aprovacao: post?.nota_aprovacao ?? '',
+    responsavel: post?.responsavel ?? '',
   }
 }
 
@@ -56,6 +71,13 @@ function paraBanco(f: Form): PostEditavel {
     primeiro_comentario: f.primeiro_comentario.trim() || null,
     data_hora: f.data ? instanteDeBR(f.data, f.hora || '12:00') : null,
     status: f.status,
+    quadro: f.quadro || null,
+    fase: f.fase || null,
+    territorio: f.territorio || null,
+    briefing: f.briefing.trim() || null,
+    fonte: f.fonte.trim() || null,
+    nota_aprovacao: f.nota_aprovacao.trim() || null,
+    responsavel: f.responsavel.trim() || null,
   }
 }
 
@@ -67,6 +89,7 @@ export default function EditorPost({ post, dataInicial, onFechar, onMudou }: Pro
   const [statusSalvo, setStatusSalvo] = useState<Status | undefined>(post?.status)
   const [ocupado, setOcupado] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
+  const [arrastando, setArrastando] = useState(false)
   const inputArquivo = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -167,6 +190,19 @@ export default function EditorPost({ post, dataInicial, onFechar, onMudou }: Pro
   }
 
 
+  // Escolher um quadro já traz o pilar e o formato sugeridos pelo manual.
+  function escolherQuadro(qid: string) {
+    const q = quadroPorId(qid)
+    setForm((f) => ({
+      ...f,
+      quadro: qid,
+      pilar: q ? q.pilar : f.pilar,
+      tipo: q && midias.length === 0 ? q.tipo : f.tipo,
+    }))
+  }
+
+  const quadro = quadroPorId(form.quadro)
+  const voz = lerVoz(form.legenda)
   const totalLegenda = legendaFinal(dados).length
   const totalHashtags = contarHashtags(form.hashtags) + contarHashtags(form.legenda)
 
@@ -233,6 +269,19 @@ export default function EditorPost({ post, dataInicial, onFechar, onMudou }: Pro
               </div>
 
               <label className="block">
+                <span className={rotulo}>Quadro editorial</span>
+                <select className={campo} value={form.quadro} onChange={(e) => escolherQuadro(e.target.value)}>
+                  <option value="">Sem quadro</option>
+                  {(Object.keys(PILARES) as Pilar[]).map((p) => (
+                    <optgroup key={p} label={PILARES[p]}>
+                      {QUADROS.filter((q) => q.pilar === p).map((q) => <option key={q.id} value={q.id}>{q.nome}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+                {quadro && <span className="block text-[12px] text-muted mt-1.5">{quadro.descricao} <span className="text-charcoal/70">Formato: {quadro.formato}.</span></span>}
+              </label>
+
+              <label className="block">
                 <span className={rotulo}>Título interno</span>
                 <input className={campo} value={form.titulo} onChange={(e) => set('titulo', e.target.value)} placeholder="Ex.: Detalhe assinatura · marcenaria Ocean" />
               </label>
@@ -255,7 +304,12 @@ export default function EditorPost({ post, dataInicial, onFechar, onMudou }: Pro
               </div>
             </div>
 
-            <div className={grupo}>
+            <div
+              className={`${grupo} transition-colors ${arrastando ? 'ring-2 ring-accent/40 bg-accent/[0.03]' : ''}`}
+              onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setArrastando(true) } }}
+              onDragLeave={() => setArrastando(false)}
+              onDrop={(e) => { e.preventDefault(); setArrastando(false); adicionarArquivos(e.dataTransfer.files) }}
+            >
               <div className="flex items-baseline justify-between mb-3">
                 <span className="text-[13px] font-medium text-charcoal">Mídias</span>
                 <span className="text-[12px] text-muted">
@@ -321,6 +375,31 @@ export default function EditorPost({ post, dataInicial, onFechar, onMudou }: Pro
                 <textarea className={`${campo} min-h-[64px] resize-y`} value={form.primeiro_comentario} onChange={(e) => set('primeiro_comentario', e.target.value)} />
               </label>
             </div>
+
+            <div className={grupo + ' space-y-4'}>
+              <div>
+                <div className="text-[13px] font-medium text-charcoal">Produção</div>
+                <p className="text-[12px] text-muted mt-0.5">Para quem for criar a peça. Vai junto no pacote do mês.</p>
+              </div>
+              <label className="block">
+                <span className={rotulo}>Briefing</span>
+                <textarea className={`${campo} min-h-[80px] resize-y`} value={form.briefing} onChange={(e) => set('briefing', e.target.value)} placeholder="O que a peça precisa ser: imagens, ordem, capa, lettering, áudio…" />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label>
+                  <span className={rotulo}>Fonte e créditos</span>
+                  <input className={campo} value={form.fonte} onChange={(e) => set('fonte', e.target.value)} placeholder="Fotógrafo, revista, @perfil" />
+                </label>
+                <label>
+                  <span className={rotulo}>Responsável</span>
+                  <input className={campo} value={form.responsavel} onChange={(e) => set('responsavel', e.target.value)} placeholder="Nicolle, freela…" />
+                </label>
+              </div>
+              <label className="block">
+                <span className={rotulo}>Comentário da aprovação</span>
+                <textarea className={`${campo} min-h-[64px] resize-y`} value={form.nota_aprovacao} onChange={(e) => set('nota_aprovacao', e.target.value)} placeholder="O que ajustar antes de agendar" />
+              </label>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -342,6 +421,50 @@ export default function EditorPost({ post, dataInicial, onFechar, onMudou }: Pro
                   </ul>
                 )}
             </div>
+            <div className={grupo}>
+              <div className="text-[13px] font-medium text-charcoal mb-1">Filtro da marca</div>
+              <p className="text-[12px] text-muted mb-3">Se não faz nenhuma das quatro, não entra.</p>
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {(Object.keys(FASES) as Fase[]).map((k) => (
+                  <button key={k} type="button" onClick={() => set('fase', form.fase === k ? '' : k)} title={FASES[k].pergunta}
+                    className={`px-3 py-1 rounded-full text-[12px] border transition-all ${form.fase === k ? 'border-olive bg-olive text-white' : 'border-black/[0.10] bg-white text-charcoal hover:border-black/25'}`}>
+                    {FASES[k].nome}
+                  </button>
+                ))}
+              </div>
+              <div className="text-[12px] font-medium text-muted mb-1.5">Território</div>
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.keys(TERRITORIOS) as Territorio[]).map((k) => (
+                  <button key={k} type="button" onClick={() => set('territorio', form.territorio === k ? '' : k)}
+                    className={`px-3 py-1 rounded-full text-[12px] border transition-all ${form.territorio === k ? 'border-charcoal bg-charcoal text-white' : 'border-black/[0.10] bg-white text-charcoal hover:border-black/25'}`}>
+                    {TERRITORIOS[k]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={grupo}>
+              <div className="text-[13px] font-medium text-charcoal mb-2">Voz da marca</div>
+              {!form.legenda.trim()
+                ? <p className="text-[13px] text-muted">A leitura aparece quando houver legenda.</p>
+                : (
+                  <div className="space-y-2.5 text-[13px]">
+                    {voz.banidas.length > 0 && (
+                      <p className="flex items-start gap-2 text-[#8C6B3F]">
+                        <AlertTriangle size={14} className="mt-[2px] shrink-0" />
+                        <span>Fora do registro: {voz.banidas.map((b) => `“${b}”`).join(', ')}.</span>
+                      </p>
+                    )}
+                    {voz.exclamacoes > 1 && <p className="text-[#8C6B3F]">{voz.exclamacoes} exclamações. A marca não grita.</p>}
+                    {voz.longas > 0 && <p className="text-charcoal/80">{voz.longas} {voz.longas === 1 ? 'frase longa' : 'frases longas'}. Cinco palavras dizem mais do que vinte.</p>}
+                    {voz.assinatura.length > 0
+                      ? <p className="text-olive">Vocabulário-assinatura: {voz.assinatura.join(', ')}.</p>
+                      : <p className="text-muted">Nenhuma palavra-assinatura (refúgio, ritual, silêncio, matéria, gesto…).</p>}
+                    {voz.banidas.length === 0 && voz.exclamacoes <= 1 && voz.longas === 0 && <p className="flex items-center gap-2 text-olive"><Check size={13} strokeWidth={3} /> No tom.</p>}
+                  </div>
+                )}
+            </div>
+
             {post?.publicado_em && <p className="text-[12px] text-muted px-1">Postado em {dataHoraBR(post.publicado_em)}</p>}
           </div>
         </div>

@@ -18,7 +18,9 @@ export type Pilar = keyof typeof PILARES
 
 export const STATUS = {
   ideia: 'Ideia',
-  rascunho: 'Rascunho',
+  rascunho: 'Em criação',
+  aprovacao: 'Em aprovação',
+  ajuste: 'Ajuste',
   agendado: 'Agendado',
   publicando: 'Publicando',
   postado: 'Postado',
@@ -28,7 +30,8 @@ export const STATUS = {
 export type Status = keyof typeof STATUS
 
 // Status que a pessoa escolhe na mão. `publicando`, `erro` e `verificar` são da publicação automática (fase 4).
-export const STATUS_MANUAIS: Status[] = ['ideia', 'rascunho', 'agendado', 'postado']
+// Fluxo de produção (o mesmo da agência): pauta → criação → aprovação → ajuste → agendado → postado.
+export const STATUS_MANUAIS: Status[] = ['ideia', 'rascunho', 'aprovacao', 'ajuste', 'agendado', 'postado']
 
 export type Midia = {
   id: string
@@ -53,9 +56,19 @@ export type Post = {
   permalink: string | null
   publicado_em: string | null
   arquivado_em: string | null
+  quadro: string | null
+  fase: 'conexao' | 'cultura' | 'troca' | 'presenca' | null
+  territorio: 'materia' | 'silencio' | 'ritual' | 'curadoria' | 'refugio' | null
+  briefing: string | null
+  fonte: string | null
+  nota_aprovacao: string | null
+  responsavel: string | null
+  origem: 'manual' | 'agencia' | 'instagram'
   criado_em: string
   atualizado_em: string
   midias: Midia[]
 }
 
-export type PostEditavel = Pick<Post, 'tipo' | 'pilar' | 'titulo' | 'legenda' | 'hashtags' | 'primeiro_comentario' | 'data_hora' | 'status'>
+export type PostEditavel = Pick<Post,
+  | 'tipo' | 'pilar' | 'titulo' | 'legenda' | 'hashtags' | 'primeiro_comentario' | 'data_hora' | 'status'
+  | 'quadro' | 'fase' | 'territorio' | 'briefing' | 'fonte' | 'nota_aprovacao' | 'responsavel'>

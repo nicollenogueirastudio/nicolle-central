@@ -66,6 +66,15 @@ export async function moverPost(supabase: SupabaseClient, id: string, dataHora: 
   await registrarAtividade(supabase, 'editou', 'post', id, { moveu_para: dataHora })
 }
 
+/** Grade do feed: um post toma o lugar (a data) do outro. Se um deles era ideia sem data, o outro vira ideia. */
+export async function trocarLugares(supabase: SupabaseClient, a: Pick<Post, 'id' | 'data_hora'>, b: Pick<Post, 'id' | 'data_hora'>) {
+  const { error: e1 } = await supabase.from('posts').update({ data_hora: b.data_hora }).eq('id', a.id)
+  if (e1) throw e1
+  const { error: e2 } = await supabase.from('posts').update({ data_hora: a.data_hora }).eq('id', b.id)
+  if (e2) throw e2
+  await registrarAtividade(supabase, 'editou', 'post', a.id, { trocou_com: b.id })
+}
+
 export async function arquivarPost(supabase: SupabaseClient, id: string) {
   const { error } = await supabase.from('posts').update({ arquivado_em: new Date().toISOString() }).eq('id', id)
   if (error) throw error

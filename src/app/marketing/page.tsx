@@ -8,18 +8,21 @@ import Calendario, { diasVisiveis } from '@/components/posts/Calendario'
 import GradeFeed from '@/components/posts/GradeFeed'
 import CartaoPost from '@/components/posts/CartaoPost'
 import EditorPost from '@/components/posts/EditorPost'
+import PautaMes from '@/components/posts/PautaMes'
 import { corPilar } from '@/components/posts/estilos'
 import { criarClienteNavegador } from '@/lib/supabase/client'
-import { listarPosts, moverPost } from '@/lib/posts/dados'
-import { PILARES, type Post } from '@/lib/posts/tipos'
+import { listarPosts, moverPost, trocarLugares, criarPost, enviarMidias, salvarPost } from '@/lib/posts/dados'
+import { podeMudarPara } from '@/lib/posts/regras'
+import { PILARES, type Post, type Status } from '@/lib/posts/tipos'
 import { hojeISO, instanteDeBR, partesBR, somarDias, mesExtenso, diaCurto } from '@/lib/datas'
 
-type Visao = 'mes' | 'semana' | 'grade'
+type Visao = 'mes' | 'semana' | 'grade' | 'pauta'
 
 const VISOES: { id: Visao; nome: string }[] = [
   { id: 'mes', nome: 'Mês' },
   { id: 'semana', nome: 'Semana' },
   { id: 'grade', nome: 'Grade do feed' },
+  { id: 'pauta', nome: 'Pauta do mês' },
 ]
 
 export default function MarketingPage() {
@@ -31,12 +34,14 @@ export default function MarketingPage() {
   const [erro, setErro] = useState<string | null>(null)
   const [arquivados, setArquivados] = useState(false)
   const [editor, setEditor] = useState<{ post: Post | null; data: string | null } | null>(null)
+  const [enviando, setEnviando] = useState(false)
+  const [aviso, setAviso] = useState<string | null>(null)
 
   const intervalo = useMemo(() => {
     if (visao === 'grade') {
       return { de: instanteDeBR(somarDias(referencia, -120), '00:00'), ate: instanteDeBR(somarDias(referencia, 120), '00:00') }
     }
-    const dias = diasVisiveis(visao, referencia)
+    const dias = diasVisiveis(visao === 'pauta' ? 'mes' : visao, referencia)
     return { de: instanteDeBR(dias[0], '00:00'), ate: instanteDeBR(somarDias(dias[dias.length - 1], 1), '00:00') }
   }, [visao, referencia])
 
@@ -64,6 +69,60 @@ export default function MarketingPage() {
     const hora = post.data_hora ? partesBR(post.data_hora).hora : '12:00'
     await moverPost(supabase, id, instanteDeBR(dia, hora))
     carregar()
+  }
+
+  // Grade: arrastar um post (ou uma ideia da lateral) sobre outro troca os dois de lugar.
+  async function trocar(arrastadoId: string, alvoId: string) {
+    const a = posts.find((p) => p.id === arrastadoId)
+    const b = posts.find((p) => p.id === alvoId)
+    if (!a || !b || a.status === 'postado' || b.status === 'postado') return
+    setAviso(null)
+    try {
+      await trocarLugares(supabase, a, b)
+      if (!a.data_hora) setAviso(`"${b.titulo || 'O post'}" voltou para as ideias sem data.`)
+    } catch (e) {
+      setAviso(`Não foi possível trocar: ${(e as Error).message}`)
+    }
+    carregar()
+  }
+
+  // Grade: cada imagem solta vira um post em criação, no fim da fila (dois dias depois do último).
+  async function testarArquivos(arquivos: File[]) {
+    setEnviando(true)
+    setAviso(null)
+    try {
+      const datas = comData.map((p) => partesBR(p.data_hora!).data).sort()
+      let dia = datas.length ? datas[datas.length - 1] : hojeISO()
+      for (const arquivo of arquivos) {
+        dia = somarDias(dia, 2)
+        const video = arquivo.type.startsWith('video')
+        const id = await criarPost(supabase, {
+          tipo: video ? 'reels' : 'feed',
+          status: 'rascunho',
+          titulo: arquivo.name.replace(/\.[^.]+$/, ''),
+          data_hora: instanteDeBR(dia, '18:00'),
+        })
+        await enviarMidias(supabase, id, [arquivo], 0)
+      }
+    } catch (e) {
+      setAviso(`Falha no envio: ${(e as Error).message}`)
+    } finally {
+      setEnviando(false)
+      carregar()
+    }
+  }
+
+  // Pauta: mudar o status direto na linha, com as mesmas regras do editor.
+  async function mudarStatus(post: Post, status: Status): Promise<string | null> {
+    const pode = podeMudarPara(status, post, post.midias)
+    if (!pode.ok) return pode.motivo ?? 'Não pode mudar agora.'
+    try {
+      await salvarPost(supabase, post.id, { status }, post.status)
+      carregar()
+      return null
+    } catch (e) {
+      return (e as Error).message
+    }
   }
 
   function navegar(direcao: -1 | 1) {
@@ -135,6 +194,13 @@ export default function MarketingPage() {
           </div>
         </div>
 
+        {aviso && (
+          <div className="mb-4 rounded-xl bg-black/[0.04] px-4 py-3 text-[13px] text-charcoal flex items-center">
+            <span className="flex-1">{aviso}</span>
+            <button onClick={() => setAviso(null)} className="text-muted hover:text-charcoal text-[12px]">Fechar</button>
+          </div>
+        )}
+
         {erro && (
           <div className="mb-4 rounded-xl bg-gold/15 px-4 py-3 text-[13px] text-charcoal">Não foi possível carregar: {erro}</div>
         )}
@@ -152,7 +218,9 @@ export default function MarketingPage() {
           <div className="grid grid-cols-[1fr_250px] gap-6 items-start">
             <div className={`transition-opacity duration-300 ${carregando ? 'opacity-50' : ''}`}>
               {visao === 'grade'
-                ? <GradeFeed posts={comData} onAbrir={abrir} />
+                ? <GradeFeed posts={comData} onAbrir={abrir} onTrocar={trocar} onSoltarArquivos={testarArquivos} enviando={enviando} />
+                : visao === 'pauta'
+                ? <PautaMes posts={doMes} nomeMes={mesExtenso(referencia.slice(0, 7))} onAbrir={abrir} onMudarStatus={mudarStatus} />
                 : (
                   <Calendario
                     visao={visao}
@@ -199,7 +267,7 @@ export default function MarketingPage() {
                   <span className="text-[13px] font-medium text-charcoal">Ideias sem data</span>
                   <span className="text-[12px] text-muted tabular-nums">{ideias.length}</span>
                 </div>
-                <p className="text-[12px] text-muted mb-3">Arraste para um dia do calendário.</p>
+                <p className="text-[12px] text-muted mb-3">{visao === 'grade' ? 'Arraste sobre um post da grade para trocar de lugar.' : 'Arraste para um dia do calendário.'}</p>
                 {ideias.length === 0
                   ? (
                     <button

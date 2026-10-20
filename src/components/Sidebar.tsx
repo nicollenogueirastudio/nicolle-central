@@ -9,6 +9,7 @@ import {
   BarChart3,
   Mail,
   Link2,
+  Gem,
   LogOut,
 } from 'lucide-react'
 
@@ -34,6 +35,15 @@ const navigation = [
     icon: CalendarDays,
     submenu: [
       { name: 'Calendário de posts', href: '/marketing' },
+    ]
+  },
+  {
+    name: 'Marca',
+    href: '/marca',
+    icon: Gem,
+    submenu: [
+      { name: 'Identidade visual', href: '/marca' },
+      { name: 'Manual da marca', href: '/marca/manual' },
     ]
   },
   {
