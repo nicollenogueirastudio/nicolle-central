@@ -10,6 +10,7 @@ import {
   Mail,
   Link2,
   Gem,
+  Leaf,
   LogOut,
 } from 'lucide-react'
 
@@ -18,6 +19,11 @@ const navigation = [
     name: 'Dashboard',
     href: '/',
     icon: LayoutGrid,
+  },
+  {
+    name: 'Princípios',
+    href: '/principios',
+    icon: Leaf,
   },
   {
     name: 'Planejamento',

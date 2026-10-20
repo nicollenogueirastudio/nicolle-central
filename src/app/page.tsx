@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import PalavraDoAno from '@/components/PalavraDoAno'
 import { versiculoDoDia } from '@/lib/versiculos'
+import { valorDoDia, PRESTACAO, DIAS_DA_PRESTACAO, type Valor } from '@/lib/principios'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { hojeISO, instanteDeBR, inicioDaSemana, somarDias, partesBR, dataBR, diaCurto } from '@/lib/datas'
 import { listarPosts } from '@/lib/posts/dados'
@@ -54,12 +55,14 @@ export default function DashboardPage() {
   const tarefas = useTarefas(supabase, { abertas: true })
   const [saudacao, setSaudacao] = useState('Olá')
   const [verso, setVerso] = useState<{ texto: string; referencia: string } | null>(null)
+  const [valor, setValor] = useState<Valor | null>(null)
 
   // Saudação pela hora de Brasília (calculada no navegador, para não divergir do HTML pré-gerado).
   useEffect(() => {
     const h = Number(partesBR(new Date()).hora.slice(0, 2))
     setSaudacao(h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite')
     setVerso(versiculoDoDia(hojeISO()))
+    setValor(valorDoDia(hojeISO()))
   }, [])
 
   useEffect(() => {
@@ -143,8 +146,8 @@ export default function DashboardPage() {
         <Header
           title={`${saudacao}, Nicolle`}
           subtitle={
-            <p className="text-[15px] text-charcoal/70 leading-relaxed max-w-[760px] min-h-[24px]">
-              {verso && <>“{verso.texto}”<span className="text-[13px] text-muted whitespace-nowrap"> · {verso.referencia} (NVI)</span></>}
+            <p className="text-[13.5px] text-charcoal/65 leading-relaxed max-w-[720px] min-h-[22px]">
+              {verso && <>“{verso.texto}”<span className="text-[12px] text-muted whitespace-nowrap"> · {verso.referencia} (NVI)</span></>}
             </p>
           }
         />
@@ -275,6 +278,22 @@ export default function DashboardPage() {
             <section className="rounded-2xl bg-[#1D1D1F] p-5">
               <PalavraDoAno supabase={supabase} ano={Number(hoje.slice(0, 4))} escuro />
             </section>
+
+            {/* Princípio de hoje */}
+            {valor && (
+              <section className={`${cartao} p-5`}>
+                <Titulo href="/principios" acao="Princípios">Princípio de hoje</Titulo>
+                <div className="text-[12px] text-olive font-medium -mt-2">{valor.nome}</div>
+                <p className="mt-2 text-[15px] text-charcoal leading-snug tracking-tight">{valor.pergunta}</p>
+                <p className="mt-3 text-[12.5px] text-charcoal/65 leading-relaxed">“{valor.texto}” <span className="text-muted whitespace-nowrap">· {valor.referencia}</span></p>
+                {Number(hoje.slice(8)) <= DIAS_DA_PRESTACAO && (
+                  <div className="mt-4 pt-3 border-t border-linha">
+                    <div className="text-[11.5px] text-muted mb-1.5">Prestação de contas do mês</div>
+                    <div className="space-y-1">{PRESTACAO.map((q) => <p key={q} className="text-[12.5px] text-charcoal/85 leading-snug">{q}</p>)}</div>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* Público */}
             <section className={`${cartao} p-5`}>
