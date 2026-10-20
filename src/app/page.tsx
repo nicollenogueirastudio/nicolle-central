@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import PalavraDoAno from '@/components/PalavraDoAno'
 import { versiculoDoDia } from '@/lib/versiculos'
 import { imagensDoDia, urlPin } from '@/lib/marca/style'
+import { temaDoDia, FREQUENCIA, type Frame } from '@/lib/stories/estrategia'
 import { valorDoDia, PRESTACAO, DIAS_DA_PRESTACAO, type Valor } from '@/lib/principios'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { hojeISO, instanteDeBR, inicioDaSemana, somarDias, partesBR, dataBR, diaCurto } from '@/lib/datas'
@@ -53,6 +54,7 @@ export default function DashboardPage() {
   const [lancamento, setLancamento] = useState<Lancamento | null>(null)
   const [metas, setMetas] = useState<Meta[]>([])
   const [carregando, setCarregando] = useState(true)
+  const [storiesHoje, setStoriesHoje] = useState<{ frames: Frame[]; publicados: number }>({ frames: [], publicados: 0 })
   const tarefas = useTarefas(supabase, { abertas: true })
   const [saudacao, setSaudacao] = useState('Olá')
   const [verso, setVerso] = useState<{ texto: string; referencia: string } | null>(null)
@@ -82,7 +84,10 @@ export default function DashboardPage() {
       supabase.from('substack_edicoes').select('titulo, publicado_em').order('publicado_em', { ascending: false }).limit(1).maybeSingle(),
       listarLancamentos(supabase),
       listarMetas(supabase),
-    ]).then(([p, atual, antes, m, c, e, l, mt]) => {
+      supabase.from('stories_roteiros').select('frames').eq('dia', hoje).maybeSingle(),
+      supabase.from('stories_publicados').select('id', { count: 'exact', head: true }).gte('publicado_em', instanteDeBR(hoje, '00:00')),
+    ]).then(([p, atual, antes, m, c, e, l, mt, sr, sp]) => {
+      setStoriesHoje({ frames: ((sr.data?.frames ?? []) as Frame[]), publicados: sp.count ?? 0 })
       setPosts(p)
       setMedidos({ atual, antes })
       const linhas = (m.data ?? []) as { rede: Rede; dia: string; seguidores: number; origem: string }[]
@@ -199,6 +204,29 @@ export default function DashboardPage() {
                 <Link href="/marketing" className="hover:text-charcoal flex items-center gap-1">Calendário <ArrowRight size={12} /></Link>
               </div>
             </section>
+
+            {/* Stories de hoje */}
+            {(() => {
+              const t = temaDoDia(hoje)
+              const n = storiesHoje.frames.length
+              const feitos = storiesHoje.frames.filter((f) => f.feito).length
+              return (
+                <Link href="/marketing/stories" className={`${cartao} px-5 py-4 flex items-center gap-5 hover:bg-black/[0.01]`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[12px] text-muted">Stories de hoje · {t.dia}</div>
+                    <div className="text-[15px] text-charcoal font-medium tracking-tight">{t.tema} <span className="text-[13px] text-muted font-normal">· {t.objetivo}</span></div>
+                    <div className="text-[12.5px] text-charcoal/70 truncate mt-0.5">
+                      {n ? storiesHoje.frames.slice(0, 4).map((f) => f.texto).join(' · ') : `Ideias: ${t.ideias.slice(0, 4).join(' · ')}`}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-[13px] text-charcoal tabular-nums">{n ? `${feitos} de ${n} no roteiro` : 'sem roteiro'}</div>
+                    <div className="text-[11.5px] text-muted">{storiesHoje.publicados ? `${storiesHoje.publicados} publicados` : `meta ${FREQUENCIA.minimo} a ${FREQUENCIA.maximo}`}</div>
+                  </div>
+                  <ArrowRight size={14} className="text-muted shrink-0" />
+                </Link>
+              )
+            })()}
 
             {/* Tarefas */}
             <section className={`${cartao} overflow-hidden`}>

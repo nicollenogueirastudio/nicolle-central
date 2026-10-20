@@ -5,7 +5,8 @@ import { ExternalLink, Check, Loader2 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import { LinhaTempo } from '@/components/performance/Graficos'
-import Ideias from '@/components/newsletter/Ideias'
+import Ideias, { type Ideia } from '@/components/newsletter/Ideias'
+import Cronograma, { textoDoNote, type Note } from '@/components/newsletter/Cronograma'
 import { criarClienteNavegador } from '@/lib/supabase/client'
 import { dataBR, hojeISO, partesBR, inicioDaSemana, somarDias, diaCurto } from '@/lib/datas'
 import { retratosDaConta, type Retrato } from '@/lib/performance/dados'
@@ -73,6 +74,9 @@ export default function NewsletterPage() {
   const supabase = useMemo(() => criarClienteNavegador(), [])
   const [edicoes, setEdicoes] = useState<Edicao[]>([])
   const [retratos, setRetratos] = useState<Retrato[]>([])
+  const [notes, setNotes] = useState<Note[]>([])
+  const [ideias, setIdeias] = useState<Ideia[]>([])
+  const [versaoIdeias, setVersaoIdeias] = useState(0)
   const [erro, setErro] = useState<string | null>(null)
   const [carregando, setCarregando] = useState(true)
 
@@ -81,6 +85,8 @@ export default function NewsletterPage() {
       const { data, error } = await supabase.from('substack_edicoes').select('*').order('publicado_em', { ascending: false })
       if (error) throw error
       setEdicoes((data ?? []) as Edicao[])
+      const n = await supabase.from('substack_notes').select('*').order('publicado_em', { ascending: false })
+      setNotes((n.data ?? []) as Note[])
       setRetratos(await retratosDaConta(supabase, 'substack'))
       setErro(null)
     } catch (e) {
@@ -186,7 +192,31 @@ export default function NewsletterPage() {
           </div>
         </section>
 
-        <Ideias supabase={supabase} />
+        <Cronograma supabase={supabase} edicoes={edicoes} notes={notes} ideias={ideias} onMudou={() => setVersaoIdeias((v) => v + 1)} />
+
+        <Ideias key={versaoIdeias} supabase={supabase} onLista={setIdeias} />
+
+        {notes.length > 0 && (
+          <section className="mb-5">
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="font-display text-[22px] text-charcoal tracking-tight">Notes</h2>
+              <span className="text-[12px] text-muted">{notes.length} notes lidos do Substack · curtidas, restacks e respostas atualizam todo dia</span>
+            </div>
+            <div className="grid grid-cols-4 gap-3 items-start">
+              {notes.slice(0, 12).map((n) => (
+                <a key={n.id} href={`https://substack.com/@casanogs/note/c-${n.id}`} target="_blank" rel="noreferrer" className={`${cartao} overflow-hidden hover:shadow-md transition-shadow`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {n.imagens[0] && <div className="aspect-[4/3] bg-cream overflow-hidden"><img src={n.imagens[0]} alt="" className="w-full h-full object-cover" /></div>}
+                  <div className="p-3.5">
+                    <div className="text-[11px] text-muted">{dataBR(n.publicado_em)}{n.imagens.length > 1 ? ` · ${n.imagens.length} imagens` : ''}</div>
+                    <p className="text-[13px] text-charcoal/85 leading-snug mt-1 line-clamp-4 whitespace-pre-line">{textoDoNote(n)}</p>
+                    <div className="text-[11.5px] text-muted mt-2 tabular-nums">{n.curtidas ?? 0} curtidas · {n.restacks ?? 0} restacks · {n.respostas ?? 0} respostas</div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className={`${cartao} overflow-hidden`}>
           <div className="px-5 pt-5 pb-3 flex items-baseline justify-between">

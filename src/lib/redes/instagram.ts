@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ResultadoSincronizacao } from './tipos'
 import { criarClienteAdmin } from '@/lib/supabase/admin'
 import { sincronizarPostsInstagram } from './instagram-posts'
+import { sincronizarStories } from './instagram-stories'
 
 // Instagram via API da Meta (Graph API), conta de criador ligada a uma página do Facebook.
 // Token de usuário do sistema (não expira) em META_TOKEN, só no servidor.
@@ -65,7 +66,13 @@ export async function sincronizarInstagram(supabase: SupabaseClient): Promise<Re
   } catch (e) {
     resumoPosts = ` · posts: ${(e as Error).message}`
   }
-  return { ok: true, resumo: `@${conta.username} · ${conta.followers_count ?? '?'} seguidores${resumoPosts}` }
+  let resumoStories = ''
+  try {
+    resumoStories = ` · ${await sincronizarStories(criarClienteAdmin(), id, token)} stories no ar`
+  } catch (e) {
+    resumoStories = ` · stories: ${(e as Error).message}`
+  }
+  return { ok: true, resumo: `@${conta.username} · ${conta.followers_count ?? '?'} seguidores${resumoPosts}${resumoStories}` }
 }
 
 /** Números das últimas 24h da conta (alcance, visitas ao perfil, cliques no site). Se a Meta recusar, segue sem eles. */

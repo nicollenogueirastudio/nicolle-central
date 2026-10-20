@@ -36,6 +36,7 @@ const navigation = [
     icon: CalendarDays,
     submenu: [
       { name: 'Calendário de posts', href: '/marketing' },
+      { name: 'Stories', href: '/marketing/stories' },
       { name: 'Estratégia', href: '/marketing/estrategia' },
       { name: 'Lançamentos', href: '/marketing/lancamentos' },
       { name: 'Tarefas', href: '/marketing/tarefas' },

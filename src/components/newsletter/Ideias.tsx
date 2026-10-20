@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ChevronLeft, ChevronRight, Trash2, Plus, ChevronDown } from 'lucide-react'
 import { registrarAtividade } from '@/lib/atividades'
+import { diaCurto } from '@/lib/datas'
 
 type Status = 'ideia' | 'pesquisa' | 'escrevendo' | 'publicada'
-type Ideia = { id: string; titulo: string; angulo: string | null; referencias: string | null; status: Status; ordem: number }
+export type Ideia = { id: string; titulo: string; angulo: string | null; referencias: string | null; status: Status; ordem: number; tipo: 'edicao' | 'note'; data_prevista: string | null }
 
 const COLUNAS: { id: Status; nome: string; dica: string }[] = [
   { id: 'ideia', nome: 'Ideias', dica: 'o que pode virar edição' },
@@ -40,9 +41,24 @@ function CartaoIdeia({ i, onSalvar, onMover, onApagar }: { i: Ideia; onSalvar: (
         />
         <button onClick={() => setAberto(!aberto)} aria-label="Detalhes" className="text-muted shrink-0 pt-0.5"><ChevronDown size={14} className={`transition-transform ${aberto ? 'rotate-180' : ''}`} /></button>
       </div>
+      {(i.tipo === 'note' || i.data_prevista) && (
+        <div className="flex items-center gap-1.5 mt-1">
+          {i.tipo === 'note' && <span className="px-1.5 py-px rounded-full bg-black/[0.05] text-[10.5px] text-charcoal/70">Note</span>}
+          {i.data_prevista && <span className="text-[11px] text-olive font-medium">{diaCurto(i.data_prevista)}</span>}
+        </div>
+      )}
       {!aberto && i.angulo && <p className="text-[12px] text-muted mt-1 line-clamp-2">{i.angulo}</p>}
       {aberto && (
         <div className="space-y-2 mt-2">
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-full bg-black/[0.05] p-0.5 text-[11.5px]">
+              {(['edicao', 'note'] as const).map((t) => (
+                <button key={t} onClick={() => onSalvar({ tipo: t })} className={`px-2.5 py-0.5 rounded-full ${i.tipo === t ? 'bg-white shadow-sm text-charcoal' : 'text-muted'}`}>{t === 'edicao' ? 'Edição' : 'Note'}</button>
+              ))}
+            </div>
+            <input type="date" value={i.data_prevista ?? ''} onChange={(e) => onSalvar({ data_prevista: e.target.value || null })} title="Data prevista no cronograma"
+              className="flex-1 min-w-0 rounded-[10px] border border-black/[0.10] bg-white px-2 py-1 text-[12px] text-charcoal outline-none focus:border-accent" />
+          </div>
           <textarea className={`${campo} min-h-[60px]`} placeholder="O ângulo: por que isso é Casa Nogs?" value={rasc.angulo} onChange={(e) => setRasc({ ...rasc, angulo: e.target.value })} onBlur={() => salvarCampo('angulo')} />
           <textarea className={`${campo} min-h-[52px]`} placeholder="Referências: links, livros, lugares" value={rasc.referencias} onChange={(e) => setRasc({ ...rasc, referencias: e.target.value })} onBlur={() => salvarCampo('referencias')} />
         </div>
@@ -57,7 +73,7 @@ function CartaoIdeia({ i, onSalvar, onMover, onApagar }: { i: Ideia; onSalvar: (
 }
 
 /** Quadro de ideias da Casa Nogs: da ideia à edição publicada. */
-export default function Ideias({ supabase }: { supabase: SupabaseClient }) {
+export default function Ideias({ supabase, onLista }: { supabase: SupabaseClient; onLista?: (l: Ideia[]) => void }) {
   const [ideias, setIdeias] = useState<Ideia[]>([])
   const [nova, setNova] = useState('')
   const [erro, setErro] = useState<string | null>(null)
@@ -68,6 +84,7 @@ export default function Ideias({ supabase }: { supabase: SupabaseClient }) {
     else setIdeias((data ?? []) as Ideia[])
   }, [supabase])
   useEffect(() => { carregar() }, [carregar])
+  useEffect(() => { onLista?.(ideias) }, [ideias, onLista])
 
   async function criar() {
     const titulo = nova.trim()
