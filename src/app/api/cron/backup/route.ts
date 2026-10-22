@@ -12,7 +12,7 @@ export const maxDuration = 60
 const TABELAS = [
   'atividades', 'conexoes', 'configuracoes', 'edicoes', 'estrategia_formatos', 'eventos',
   'lancamento_movimentos', 'lancamentos', 'marca_manual', 'metas', 'metricas_conta', 'metricas_historicas',
-  'newsletter_ideias', 'palavras_do_ano', 'perfis', 'planejamento_metas', 'posts', 'posts_metricas', 'posts_midia',
+  'newsletter_ideias', 'newsletter_leituras', 'newsletter_rascunhos', 'palavras_do_ano', 'perfis', 'planejamento_metas', 'posts', 'posts_metricas', 'posts_midia',
   'referencias', 'sincronizacao_estado', 'sonhos', 'stories_publicados', 'stories_roteiros', 'style_removidas',
   'substack_edicoes', 'substack_notes', 'tarefas',
 ]

@@ -67,6 +67,10 @@ const navigation = [
     name: 'Newsletter',
     href: '/newsletter',
     icon: Mail,
+    submenu: [
+      { name: 'Casa Nogs', href: '/newsletter' },
+      { name: 'Escrever', href: '/newsletter/escrever' },
+    ]
   },
 ]
 
