@@ -146,6 +146,46 @@ export const RECEITA: Record<string, number[]> = {
   oblist: [0, 1, 0, 0, 2, 0, 0, 2],
 }
 
+// O que cada uma publica, por canal. Leitura dos sites (seções, menus) e dos feeds, out/2026.
+export const TIPOS_CONTEUDO = [
+  { id: 'arquitetura', nome: 'Arquitetura' },
+  { id: 'interiores', nome: 'Casas e interiores' },
+  { id: 'objetos', nome: 'Objetos e design' },
+  { id: 'arte', nome: 'Arte' },
+  { id: 'fotografia', nome: 'Fotografia autoral' },
+  { id: 'viagem', nome: 'Viagem e city guides' },
+  { id: 'hotelaria', nome: 'Hotéis e hospitalidade' },
+  { id: 'mesa', nome: 'Gastronomia e mesa' },
+  { id: 'moda', nome: 'Moda, joias e estilo' },
+  { id: 'conversas', nome: 'Entrevistas e perfis' },
+  { id: 'bastidores', nome: 'Studio visits e bastidores' },
+  { id: 'agenda', nome: 'Notícias, feiras e lançamentos' },
+  { id: 'eventos', nome: 'Prêmios e eventos próprios' },
+  { id: 'video', nome: 'Vídeo (tours, Reels)' },
+  { id: 'loja', nome: 'Produto à venda' },
+  { id: 'proprios', nome: 'Livros e publicações próprias' },
+] as const
+export type TipoConteudo = (typeof TIPOS_CONTEUDO)[number]['id']
+export type Canal = 'ig' | 'site' | 'ambos'
+
+export const CONTEUDO: Record<string, Partial<Record<TipoConteudo, Canal>>> = {
+  wallpaper: { arquitetura: 'ambos', interiores: 'ambos', objetos: 'ambos', arte: 'ambos', viagem: 'ambos', hotelaria: 'ambos', mesa: 'site', moda: 'ambos', conversas: 'site', agenda: 'ambos', eventos: 'ambos', video: 'ig', loja: 'site', proprios: 'site' },
+  ah: { arquitetura: 'ambos', interiores: 'ambos', viagem: 'site', conversas: 'ambos', bastidores: 'ig', agenda: 'ambos', eventos: 'ambos', video: 'ambos' },
+  cereal: { arquitetura: 'ambos', interiores: 'ambos', objetos: 'ambos', arte: 'site', fotografia: 'ambos', viagem: 'ambos', hotelaria: 'ambos', mesa: 'ambos', moda: 'site', conversas: 'site', loja: 'site', proprios: 'ambos' },
+  ignant: { arquitetura: 'ambos', interiores: 'ambos', objetos: 'ambos', arte: 'ambos', fotografia: 'ambos', viagem: 'site', hotelaria: 'site', mesa: 'site', conversas: 'site', bastidores: 'site' },
+  yatzer: { arquitetura: 'ambos', interiores: 'ambos', objetos: 'site', arte: 'site', viagem: 'site', hotelaria: 'ambos', mesa: 'ambos', moda: 'site', conversas: 'site', eventos: 'site' },
+  softer: { arquitetura: 'ambos', interiores: 'ambos', objetos: 'ambos', viagem: 'ambos', hotelaria: 'ambos', mesa: 'ambos', loja: 'ambos', proprios: 'ambos' },
+  vestigare: { arquitetura: 'ig', interiores: 'ig' },
+  orb: { arquitetura: 'site', interiores: 'ambos', objetos: 'ambos', arte: 'ig', viagem: 'site', mesa: 'site', conversas: 'ambos', bastidores: 'ambos', agenda: 'ambos', loja: 'ambos', proprios: 'site' },
+  oblist: { interiores: 'ambos', objetos: 'ambos', arte: 'ambos', mesa: 'site', conversas: 'site', video: 'ig', loja: 'ambos' },
+}
+
+// A revista, como proposta: onde entra desde o início e o que vem nas fases seguintes.
+export const CONTEUDO_PROPOSTA: Partial<Record<TipoConteudo, Canal | 'depois'>> = {
+  arquitetura: 'ambos', interiores: 'ambos', objetos: 'ambos', arte: 'site', fotografia: 'ambos', viagem: 'ambos', hotelaria: 'ambos',
+  mesa: 'ambos', conversas: 'ambos', bastidores: 'ambos', video: 'ig', eventos: 'depois', loja: 'depois', proprios: 'depois',
+}
+
 // Mapa: x de 0 (mídia) a 100 (comércio); y de 0 (lifestyle) a 100 (arquitetura profissional).
 export const MAPA: Record<string, { x: number; y: number }> = {
   ah: { x: 16, y: 82 }, vestigare: { x: 28, y: 90 }, wallpaper: { x: 22, y: 58 }, ignant: { x: 14, y: 38 },
