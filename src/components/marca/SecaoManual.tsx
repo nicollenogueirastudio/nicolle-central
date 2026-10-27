@@ -176,8 +176,10 @@ function EditarBloco({ bloco, onMudar }: { bloco: Bloco; onMudar: (b: Bloco) => 
   }
 }
 
-/** Uma seção do manual: lê, edita e volta ao texto original. */
-export default function SecaoManual({ secao, original, editada, children }: { secao: Secao; original: Secao; editada: boolean; children?: React.ReactNode }) {
+/** Uma seção do manual: lê, edita e volta ao texto original. Serve ao manual NN e ao da Magazine (cada um na sua tabela). */
+export default function SecaoManual({ secao, original, editada, children, tabela = 'marca_manual' }: {
+  secao: Secao; original: Secao; editada: boolean; children?: React.ReactNode; tabela?: 'marca_manual' | 'magazine_manual'
+}) {
   const supabase = useMemo(() => criarClienteNavegador(), [])
   const router = useRouter()
   const [editando, setEditando] = useState(false)
@@ -185,12 +187,13 @@ export default function SecaoManual({ secao, original, editada, children }: { se
   const [blocos, setBlocos] = useState<Bloco[]>(secao.blocos)
   const [ocupado, setOcupado] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+  const entidade = tabela === 'marca_manual' ? 'manual_marca' : 'manual_magazine'
 
   async function salvar() {
     setOcupado(true)
-    const { error } = await supabase.from('marca_manual').upsert({ secao_id: secao.id, titulo: titulo.trim() || original.titulo, blocos })
+    const { error } = await supabase.from(tabela).upsert({ secao_id: secao.id, titulo: titulo.trim() || original.titulo, blocos })
     if (error) { setErro(error.message); setOcupado(false); return }
-    await registrarAtividade(supabase, 'editou', 'manual_marca', secao.id)
+    await registrarAtividade(supabase, 'editou', entidade, secao.id)
     setOcupado(false)
     setEditando(false)
     router.refresh()
@@ -199,8 +202,8 @@ export default function SecaoManual({ secao, original, editada, children }: { se
   async function restaurar() {
     if (!confirm(`Voltar "${original.titulo}" ao texto original do manual? A sua edição desta seção será descartada.`)) return
     setOcupado(true)
-    await supabase.from('marca_manual').delete().eq('secao_id', secao.id)
-    await registrarAtividade(supabase, 'editou', 'manual_marca', secao.id, { restaurou_original: true })
+    await supabase.from(tabela).delete().eq('secao_id', secao.id)
+    await registrarAtividade(supabase, 'editou', entidade, secao.id, { restaurou_original: true })
     setTitulo(original.titulo)
     setBlocos(original.blocos)
     setOcupado(false)
@@ -214,9 +217,11 @@ export default function SecaoManual({ secao, original, editada, children }: { se
         {editando
           ? <input className={`${campo} !text-[22px] !font-semibold tracking-tight max-w-[520px]`} value={titulo} onChange={(e) => setTitulo(e.target.value)} />
           : <h2 className="font-display text-[24px] text-charcoal tracking-tight">{secao.titulo}</h2>}
-        <AbrirPagina colecao="manual" pagina={secao.pagina} titulo="Ver a página original" className="flex items-center gap-1 text-[12px] text-muted hover:text-charcoal transition-colors">
-          <FileText size={12} /> p. {secao.pagina}
-        </AbrirPagina>
+        {secao.pagina > 0 && (
+          <AbrirPagina colecao="manual" pagina={secao.pagina} titulo="Ver a página original" className="flex items-center gap-1 text-[12px] text-muted hover:text-charcoal transition-colors">
+            <FileText size={12} /> p. {secao.pagina}
+          </AbrirPagina>
+        )}
         {editada && !editando && <span className="text-[11px] text-accent">editado</span>}
         {!editando && (
           <button onClick={() => { setTitulo(secao.titulo); setBlocos(secao.blocos); setEditando(true) }} className="ml-auto flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] text-muted hover:text-charcoal hover:bg-black/[0.05] opacity-0 group-hover/secao:opacity-100 transition-opacity">

@@ -9,10 +9,11 @@ const PERFIL = 'nicollenogueirastudio'
 interface Props {
   post: PostEditavel
   midias: Midia[]
+  grande?: boolean // tamanho de feed no computador, para a aprovação
 }
 
 /** Como o post fica no feed do Instagram (ou na tela cheia, se for story). */
-export default function PreviaInstagram({ post, midias }: Props) {
+export default function PreviaInstagram({ post, midias, grande = false }: Props) {
   const [indice, setIndice] = useState(0)
   const atual = midias[Math.min(indice, midias.length - 1)]
   const story = post.tipo === 'story'
@@ -24,7 +25,7 @@ export default function PreviaInstagram({ post, midias }: Props) {
 
   if (story) {
     return (
-      <div className="w-[260px] aspect-[9/16] bg-dark relative overflow-hidden rounded-[22px] shadow-flutuante mx-auto">
+      <div className={`${grande ? 'w-[360px]' : 'w-[260px]'} aspect-[9/16] bg-dark relative overflow-hidden rounded-[22px] shadow-flutuante mx-auto`}>
         {midia}
         <div className="absolute top-2 inset-x-2 h-0.5 bg-white/40" />
         <div className="absolute top-4 left-3 flex items-center gap-2 text-white text-xs font-semibold drop-shadow">
@@ -35,7 +36,7 @@ export default function PreviaInstagram({ post, midias }: Props) {
   }
 
   return (
-    <div className="w-[320px] bg-white rounded-[22px] shadow-flutuante overflow-hidden mx-auto text-[13px] text-black">
+    <div className={`${grande ? 'w-full max-w-[540px] text-[14px]' : 'w-[320px] text-[13px]'} bg-white rounded-[22px] shadow-flutuante overflow-hidden mx-auto text-black`}>
       <div className="flex items-center gap-2 px-3 py-2.5">
         <span className="w-7 h-7 rounded-full bg-dark text-white flex items-center justify-center text-[12px] font-semibold ring-2 ring-white outline outline-1 outline-black/10">N</span>
         <span className="font-semibold">{PERFIL}</span>

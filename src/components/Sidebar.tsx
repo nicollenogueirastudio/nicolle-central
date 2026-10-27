@@ -12,65 +12,74 @@ import {
   Link2,
   Gem,
   Leaf,
+  BookOpen,
   LogOut,
 } from 'lucide-react'
 
-const navigation = [
+type Item = { name: string; href: string; icon: typeof LayoutGrid; submenu?: { name: string; href: string }[] }
+
+// Grupos do menu: o que é da vida toda fica solto no topo; cada negócio tem o seu bloco.
+const navigation: { grupo?: string; itens: Item[] }[] = [
   {
-    name: 'Dashboard',
-    href: '/',
-    icon: LayoutGrid,
+    itens: [
+      { name: 'Dashboard', href: '/', icon: LayoutGrid },
+      { name: 'Princípios', href: '/principios', icon: Leaf },
+    ],
   },
   {
-    name: 'Princípios',
-    href: '/principios',
-    icon: Leaf,
+    grupo: 'Nicolle Nogueira Studio',
+    itens: [
+      { name: 'Planejamento', href: '/planejamento', icon: Target },
+      {
+        name: 'Marketing NN',
+        href: '/marketing',
+        icon: CalendarDays,
+        submenu: [
+          { name: 'Calendário de posts', href: '/marketing' },
+          { name: 'Aprovação', href: '/marketing/aprovacao' },
+          { name: 'Stories', href: '/marketing/stories' },
+          { name: 'Estratégia', href: '/marketing/estrategia' },
+          { name: 'Lançamentos', href: '/marketing/lancamentos' },
+          { name: 'Tarefas', href: '/marketing/tarefas' },
+        ],
+      },
+      { name: 'Calendário', href: '/calendario', icon: CalendarRange },
+      {
+        name: 'Marca',
+        href: '/marca',
+        icon: Gem,
+        submenu: [
+          { name: 'Identidade visual', href: '/marca' },
+          { name: 'Manual da marca', href: '/marca/manual' },
+          { name: 'Nicolle Nogueira Style', href: '/marca/style' },
+        ],
+      },
+      { name: 'Performance', href: '/performance', icon: BarChart3 },
+      {
+        name: 'Newsletter',
+        href: '/newsletter',
+        icon: Mail,
+        submenu: [
+          { name: 'Casa Nogs', href: '/newsletter' },
+          { name: 'Escrever', href: '/newsletter/escrever' },
+        ],
+      },
+    ],
   },
   {
-    name: 'Planejamento',
-    href: '/planejamento',
-    icon: Target,
-  },
-  {
-    name: 'Marketing',
-    href: '/marketing',
-    icon: CalendarDays,
-    submenu: [
-      { name: 'Calendário de posts', href: '/marketing' },
-      { name: 'Stories', href: '/marketing/stories' },
-      { name: 'Estratégia', href: '/marketing/estrategia' },
-      { name: 'Lançamentos', href: '/marketing/lancamentos' },
-      { name: 'Tarefas', href: '/marketing/tarefas' },
-    ]
-  },
-  {
-    name: 'Calendário',
-    href: '/calendario',
-    icon: CalendarRange,
-  },
-  {
-    name: 'Marca',
-    href: '/marca',
-    icon: Gem,
-    submenu: [
-      { name: 'Identidade visual', href: '/marca' },
-      { name: 'Manual da marca', href: '/marca/manual' },
-      { name: 'Nicolle Nogueira Style', href: '/marca/style' },
-    ]
-  },
-  {
-    name: 'Performance',
-    href: '/performance',
-    icon: BarChart3,
-  },
-  {
-    name: 'Newsletter',
-    href: '/newsletter',
-    icon: Mail,
-    submenu: [
-      { name: 'Casa Nogs', href: '/newsletter' },
-      { name: 'Escrever', href: '/newsletter/escrever' },
-    ]
+    grupo: 'Magazine',
+    itens: [
+      {
+        name: 'Magazine',
+        href: '/magazine',
+        icon: BookOpen,
+        submenu: [
+          { name: 'Plano', href: '/magazine' },
+          { name: 'Concorrentes', href: '/magazine/concorrentes' },
+          { name: 'Manual da marca', href: '/magazine/marca' },
+        ],
+      },
+    ],
   },
 ]
 
@@ -89,39 +98,46 @@ export default function Sidebar() {
       </div>
 
       {/* Navegação */}
-      <nav className="flex-1 overflow-y-auto px-3 space-y-0.5">
-        {navigation.map((item) => {
-          const isActive = ativo(item.href)
-          const Icon = item.icon
+      <nav className="flex-1 overflow-y-auto px-3">
+        {navigation.map((bloco, b) => (
+          <div key={b} className={b ? 'pt-5' : ''}>
+            {bloco.grupo && <div className="px-2.5 pb-1.5 text-[11px] font-medium text-muted uppercase tracking-[0.06em]">{bloco.grupo}</div>}
+            <div className="space-y-0.5">
+              {bloco.itens.map((item) => {
+                const isActive = ativo(item.href)
+                const Icon = item.icon
 
-          return (
-            <div key={item.name}>
-              <Link
-                href={item.href}
-                className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] transition-colors duration-150
-                  ${isActive ? 'bg-black/[0.07] text-charcoal font-medium' : 'text-charcoal/80 hover:bg-black/[0.04]'}`}
-              >
-                <Icon size={16} strokeWidth={1.8} className={isActive ? 'text-accent' : 'text-muted'} />
-                <span>{item.name}</span>
-              </Link>
-
-              {item.submenu && isActive && item.submenu.length > 1 && (
-                <div className="mt-0.5 mb-1.5 space-y-0.5">
-                  {item.submenu.map((subitem) => (
+                return (
+                  <div key={item.name}>
                     <Link
-                      key={subitem.name}
-                      href={subitem.href}
-                      className={`block pl-[38px] pr-2.5 py-[5px] rounded-lg text-[12.5px] transition-colors
-                        ${pathname === subitem.href ? 'text-charcoal font-medium' : 'text-muted hover:text-charcoal'}`}
+                      href={item.href}
+                      className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] transition-colors duration-150
+                        ${isActive ? 'bg-black/[0.07] text-charcoal font-medium' : 'text-charcoal/80 hover:bg-black/[0.04]'}`}
                     >
-                      {subitem.name}
+                      <Icon size={16} strokeWidth={1.8} className={isActive ? 'text-accent' : 'text-muted'} />
+                      <span>{item.name}</span>
                     </Link>
-                  ))}
-                </div>
-              )}
+
+                    {item.submenu && isActive && item.submenu.length > 1 && (
+                      <div className="mt-0.5 mb-1.5 space-y-0.5">
+                        {item.submenu.map((subitem) => (
+                          <Link
+                            key={subitem.name}
+                            href={subitem.href}
+                            className={`block pl-[38px] pr-2.5 py-[5px] rounded-lg text-[12.5px] transition-colors
+                              ${pathname === subitem.href ? 'text-charcoal font-medium' : 'text-muted hover:text-charcoal'}`}
+                          >
+                            {subitem.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-          )
-        })}
+          </div>
+        ))}
       </nav>
 
       {/* Rodapé */}

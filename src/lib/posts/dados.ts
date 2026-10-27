@@ -29,6 +29,21 @@ export async function listarPosts(
   return posts
 }
 
+/** Posts não arquivados em certos status (a fila de aprovação), por data, com links das mídias. */
+export async function listarPorStatus(supabase: SupabaseClient, status: Status[]): Promise<Post[]> {
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*, midias:posts_midia(*)')
+    .is('arquivado_em', null)
+    .in('status', status)
+    .order('data_hora', { ascending: true, nullsFirst: false })
+    .order('ordem', { referencedTable: 'posts_midia', ascending: true })
+  if (error) throw error
+  const posts = (data ?? []) as Post[]
+  await assinarMidias(supabase, posts.flatMap((p) => p.midias))
+  return posts
+}
+
 /** Preenche `url` de cada mídia com um link assinado temporário (bucket é privado). */
 async function assinarMidias(supabase: SupabaseClient, midias: Midia[]) {
   if (midias.length === 0) return
