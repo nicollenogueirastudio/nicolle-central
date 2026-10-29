@@ -13,6 +13,7 @@ import {
   Gem,
   Leaf,
   BookOpen,
+  Globe,
   LogOut,
 } from 'lucide-react'
 
@@ -54,6 +55,7 @@ const navigation: { grupo?: string; itens: Item[] }[] = [
           { name: 'Nicolle Nogueira Style', href: '/marca/style' },
         ],
       },
+      { name: 'Worldbuilding', href: '/worldbuilding', icon: Globe },
       { name: 'Performance', href: '/performance', icon: BarChart3 },
       {
         name: 'Newsletter',
