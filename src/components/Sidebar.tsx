@@ -14,6 +14,7 @@ import {
   Leaf,
   BookOpen,
   LogOut,
+  Megaphone,
 } from 'lucide-react'
 
 type Item = { name: string; href: string; icon: typeof LayoutGrid; submenu?: { name: string; href: string }[] }
@@ -55,6 +56,16 @@ const navigation: { grupo?: string; itens: Item[] }[] = [
         ],
       },
       { name: 'Performance', href: '/performance', icon: BarChart3 },
+      {
+        name: 'Tráfego pago',
+        href: '/trafego',
+        icon: Megaphone,
+        submenu: [
+          { name: 'Visão geral', href: '/trafego' },
+          { name: 'Anúncios', href: '/trafego/anuncios' },
+          { name: 'Configurar', href: '/trafego/configurar' },
+        ],
+      },
       {
         name: 'Newsletter',
         href: '/newsletter',

@@ -10,11 +10,11 @@ export const maxDuration = 60
 // Tabela nova no banco entra aqui também.
 
 const TABELAS = [
-  'atividades', 'conexoes', 'configuracoes', 'edicoes', 'estrategia_formatos', 'eventos',
+  'anuncios', 'atividades', 'conexoes', 'configuracoes', 'edicoes', 'estrategia_formatos', 'eventos',
   'lancamento_movimentos', 'lancamentos', 'magazine_manual', 'marca_manual', 'metas', 'metricas_conta', 'metricas_historicas',
   'newsletter_ideias', 'newsletter_leituras', 'newsletter_rascunhos', 'palavras_do_ano', 'perfis', 'planejamento_metas', 'posts', 'posts_metricas', 'posts_midia',
   'referencias', 'sincronizacao_estado', 'sonhos', 'stories_publicados', 'stories_roteiros', 'style_removidas',
-  'substack_edicoes', 'substack_notes', 'tarefas',
+  'substack_edicoes', 'substack_notes', 'tarefas', 'trafego_acoes', 'trafego_config',
 ]
 const LOTE = 5000
 
